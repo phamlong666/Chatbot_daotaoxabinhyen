@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chatbot_Chính sách xã hội</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --blue-primary: #0284c7;     
+            --blue-dark: #0369a1;        
+            --blue-deep: #0c4a6e;        
+            --blue-light: #f0f9ff;       
+            --blue-border: #bae6fd;      
+            --text-main: #0f172a;        
+            --green-correct: #16a34a;    
+            --red-incorrect: #dc2626;    
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            color: var(--text-main);
+            margin: 0; 
+            padding: 20px; 
+            min-height: 100vh;
+            display: flex; 
+            justify-content: center;
+            align-items: flex-start;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Canvas hiệu ứng tuyết rơi */
+        #snowflake-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* Bố cục tổng thể chia 2 cột: Sidebar trái + Chatbot phải */
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 1260px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        /* Sidebar bên trái chứa các đường link nhanh */
+        .sidebar-links {
+            width: 280px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            padding: 24px 20px;
+            border: 1px solid rgba(186, 230, 253, 0.6);
+            flex-shrink: 0;
+            height: fit-content;
+        }
+
+        .sidebar-links h3 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--blue-deep);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 2px solid var(--blue-border);
+            padding-bottom: 10px;
+        }
+
+        .link-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            margin-bottom: 12px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            color: var(--blue-dark);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+
+        .link-item:hover {
+            background: var(--blue-light);
+            border-color: var(--blue-primary);
+            color: var(--blue-primary);
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
+        }
+
+        .link-item i {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        /* Container chính của Chatbot bên phải */
+        .chatbot { 
+            flex-grow: 1;
+            background: #ffffff; 
+            border-radius: 20px; 
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            padding: 32px;
+            border: 1px solid rgba(186, 230, 253, 0.5);
+        }
+
+        /* Header */
+        .header {
+            border-bottom: 2px solid var(--blue-border);
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            color: var(--blue-dark); 
+            font-size: 2.1rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header p.author { 
+            color: #64748b; 
+            font-size: 0.95rem; 
+            font-weight: 500;
+            margin-top: 4px;
+        }
+        .header p.counter { 
+            color: var(--blue-primary); 
+            font-size: 0.9rem; 
+            margin-top: 6px;
+            font-weight: 600;
+        }
+
+        /* Input/Search */
+        #search-box {
+            border: 2px solid #cbd5e1; 
+            border-radius: 12px; 
+            padding: 14px 20px;
+            width: 100%; 
+            font-size: 1rem; 
+            transition: all 0.25s ease;
+            background-color: #f8fafc;
+        }
+        #search-box:focus { 
+            border-color: var(--blue-primary); 
+            background-color: #ffffff;
+            outline: none; 
+            box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.15);
+        }
+        #search-button {
+            background-color: var(--blue-primary); 
+            color: #fff; 
+            padding: 14px 24px;
+            border-radius: 12px; 
+            font-weight: 600;
+            transition: all 0.25s ease; 
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+        }
+        #search-button:hover { 
+            background-color: var(--blue-dark); 
+            transform: translateY(-1px);
+        }
+
+        /* Results */
+        .result-item {
+            border-left: 5px solid var(--blue-primary); 
+            background: var(--blue-light); 
+            padding: 18px 20px; 
+            border-radius: 10px; 
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            border-top: 1px solid rgba(186, 230, 253, 0.3);
+            border-right: 1px solid rgba(186, 230, 253, 0.3);
+            border-bottom: 1px solid rgba(186, 230, 253, 0.3);
+        }
+        .result-item p:first-of-type { 
+            font-weight: 700; 
+            color: var(--blue-deep); 
+            font-size: 1.05rem;
+            margin-bottom: 6px; 
+        }
+        .result-item p:nth-of-type(2) { 
+            color: #1e293b; 
+            margin-bottom: 8px; 
+            line-height: 1.5;
+            font-size: 0.98rem; 
+        }
+
+        /* Tabs */
+        .tab-button {
+            padding: 12px 20px; 
+            border-bottom: 3px solid transparent;
+            font-weight: 600; 
+            color: #64748b; 
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 8px 8px 0 0;
+        }
+        .tab-button:hover {
+            color: var(--blue-primary);
+            background-color: rgba(224, 242, 254, 0.5);
+        }
+        .tab-button.active { 
+            border-bottom-color: var(--blue-primary); 
+            color: var(--blue-primary); 
+            background-color: var(--blue-light);
+        }
+
+        /* Modal */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 20000; 
+            left: 0; 
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(15, 23, 42, 0.7); 
+            backdrop-filter: blur(4px);
+            padding-top: 40px;
+        }
+        .modal-content {
+            background-color: #ffffff; 
+            margin: auto; 
+            padding: 28px;
+            border-radius: 16px; 
+            width: 92%; 
+            max-width: 760px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); 
+            position: relative;
+            border: 1px solid var(--blue-border);
+        }
+        .close-button {
+            color: #94a3b8; 
+            float: right; 
+            font-size: 28px;
+            font-weight: bold; 
+            line-height: 1; 
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .close-button:hover { color: var(--blue-deep); }
+
+        /* QA List Items */
+        .qa-item {
+            border: 1px solid #e2e8f0; 
+            border-radius: 12px; 
+            margin-bottom: 14px;
+            padding: 16px; 
+            cursor: pointer; 
+            transition: all 0.2s;
+            background: #ffffff;
+        }
+        .qa-item:hover { 
+            background: var(--blue-light); 
+            border-color: var(--blue-border);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08); 
+        }
+        .question { font-weight: 700; color: var(--blue-dark); font-size: 1rem; }
+        .answer {
+            margin-top: 12px; 
+            padding: 12px 16px; 
+            border-left: 4px solid var(--blue-primary);
+            background: #f8fafc; 
+            border-radius: 0 8px 8px 0;
+            display: none;
+            line-height: 1.5;
+        }
+        
+        /* Quiz Styling */
+        .quiz-option {
+            border: 1.5px solid #cbd5e1; 
+            padding: 12px 18px; 
+            margin-bottom: 10px;
+            border-radius: 10px; 
+            cursor: pointer; 
+            transition: all 0.2s;
+            background-color: #ffffff;
+            font-weight: 500;
+        }
+        .quiz-option:hover { 
+            background-color: var(--blue-light); 
+            border-color: var(--blue-primary); 
+        }
+        .quiz-option.correct {
+            background-color: #dcfce7 !important; 
+            color: #15803d !important;
+            border-color: var(--green-correct) !important; 
+            font-weight: 700;
+        }
+        .quiz-option.incorrect {
+            background-color: #fee2e2 !important; 
+            color: #b91c1c !important;
+            border-color: var(--red-incorrect) !important; 
+            font-weight: 700;
+        }
+        .quiz-option.show-correct { 
+            border: 2px solid var(--green-correct) !important; 
+            background-color: #f0fdf4 !important;
+        }
+        .explanation {
+            display: none; 
+            margin-top: 16px; 
+            padding: 14px; 
+            font-size: 0.95rem;
+            border-left-width: 4px;
+            border-radius: 0 8px 8px 0;
+        }
+        .quiz-selection-btn, .footer-button {
+            background-color: var(--blue-primary); 
+            color: #fff; 
+            padding: 12px 22px; 
+            border-radius: 10px; 
+            font-size: 1rem; 
+            font-weight: 700; 
+            text-align: center;
+            transition: all 0.25s; 
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.2);
+        }
+        .quiz-selection-btn:hover, .footer-button:hover { 
+            background-color: var(--blue-dark); 
+            transform: translateY(-1px);
+        }
+
+        /* Responsive cho màn hình nhỏ */
+        @media (max-width: 900px) {
+            .main-layout {
+                flex-direction: column;
+            }
+            .sidebar-links {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body onload="document.getElementById('search-box').focus()">
+
+    <!-- Canvas hiệu ứng tuyết rơi -->
+    <canvas id="snowflake-canvas"></canvas>
+
+    <div class="main-layout">
+        <!-- Cột Sidebar bên trái: Liên kết nhanh -->
+        <div class="sidebar-links">
+            <h3><i class="fas fa-link text-sky-600"></i> Liên kết nhanh</h3>
+            
+            <a href="https://www.youtube.com/watch?v=MN99xct3HQw&list=RDMMMN99xct3HQw&start_radio=1" target="_blank" class="link-item">
+                <i class="fab fa-youtube text-red-600"></i>
+                <span>Nhạc thư giãn / YouTube</span>
+            </a>
+
+            <a href="https://binhyen.thainguyen.gov.vn/" target="_blank" class="link-item">
+                <i class="fas fa-folder-open text-sky-600"></i>
+                <span>Trang thông tin điện tử xã Bình Yên</span>
+            </a>
+
+            <a href="https://www.facebook.com/profile.php?id=61577397223902&locale=vi_VN" target="_blank" class="link-item">
+                <i class="fas fa-shield-alt text-amber-600"></i>
+                <span>Facebook_Truyền thông xã Bình Yên</span>
+            </a>
+        </div>
+
+        <!-- Cột bên phải: Giao diện Chatbot chính -->
+        <div class="chatbot">
+            <div class="header">
+                <h1 class="flex items-center">
+                    <span class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 via-blue-600 to-indigo-700 text-2xl shadow-[0_10px_20px_rgba(2,132,199,0.4)] mr-3 transform transition hover:scale-105">
+                        🤖
+                    </span>
+                    Chatbot_Chính sách xã hội</h1>
+                <p class="author">Bản quyền © 2026 bởi Phạm Hồng Long & AI Assistant</p>
+                <p class="counter" id="total-qa-count"></p>
+            </div>
+
+            <div class="flex border-b border-sky-200 mb-6 space-x-2">
+                <button class="tab-button active" id="tab-search" onclick="showTab('search')">
+                    <i class="fas fa-comments"></i> Hỏi đáp AI
+                </button>
+                <button class="tab-button" id="tab-quick-learn" onclick="openQuickLearnModal()">
+                    <i class="fas fa-book-open"></i> Học Nhanh (QA)
+                </button>
+                <button class="tab-button" id="tab-quiz" onclick="openQuizSelectionModal()">
+                    <i class="fas fa-pencil-alt"></i> Thi Trắc nghiệm
+                </button>
+            </div>
+
+            <div id="search-content">
+                <div class="flex space-x-3 mb-6">
+                    <input type="text" id="search-box" placeholder="Nhập câu hỏi về chính sách xã hội, y tế, người có công, quân đội... (Ví dụ: Nghị định 192, phụ cấp trực, trợ cấp ưu đãi)" class="flex-grow" onkeypress="handleKeyPress(event)">
+                    <button id="search-button" onclick="handleUserQuery()">
+                        <i class="fas fa-paper-plane mr-1"></i> Gửi
+                    </button>
+                </div>
+                <div id="results-container" class="space-y-4">
+                    <p class="text-slate-500 italic"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal dùng chung -->
+    <div id="main-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()">&times;</span>
+            <h2 id="modal-title" class="text-2xl font-bold mb-4 border-b pb-3 text-sky-800"></h2>
+            <div id="modal-body" class="max-h-[68vh] overflow-y-auto pr-2"></div>
+            <div id="modal-footer" class="mt-5 pt-3 border-t border-slate-100 flex justify-end items-center"></div>
+        </div>
+    </div>
+
+    <script>
+        // ====================================================================
+        // I. CƠ SỞ DỮ LIỆU CÂU HỎI & ĐÁP ÁN (CHÍNH SÁCH XÃ HỘI)
+        // ====================================================================
+        const qaData = [
+          {
+            "q": "Nghị định số 192/2026/NĐ-CP quy định về những chế độ phụ cấp đặc thù nào trong lĩnh vực y tế?",
+            "a": "Nghị định số 192/2026/NĐ-CP quy định các chế độ phụ cấp đặc thù trong lĩnh vực y tế bao gồm: phụ cấp trực, phụ cấp phẫu thuật, thủ thuật và phụ cấp chống dịch; đồng thời quy định mức hỗ trợ hằng tháng đối với nhân viên y tế thôn, tổ dân phố và cô đỡ thôn, bản.",
+            "sources": ["192-ndcp.signed.pdf (Nghị định số 192/2026/NĐ-CP ngày 30/05/2026)", "Chương I, Điều 1, Khoản 1 & Khoản 2, trang 1"]
+          },
+          {
+            "q": "Đối tượng áp dụng chế độ phụ cấp đặc thù y tế theo Nghị định số 192/2026/NĐ-CP bao gồm những ai?",
+            "a": "Đối tượng áp dụng gồm viên chức, người lao động làm việc tại các cơ sở y tế công lập, trạm y tế xã/phường/đặc khu, trung tâm giám định pháp y, tâm thần; sĩ quan, quân nhân chuyên nghiệp, công chức, viên chức y tế thuộc Bộ Quốc phòng, Bộ Công an; thành viên Ban Chỉ đạo phòng thủ dân sự các cấp; nhân viên y tế thôn/tổ dân phố và cô đỡ thôn/bản.",
+            "sources": ["192-ndcp.signed.pdf (Nghị định số 192/2026/NĐ-CP ngày 30/05/2026)", "Chương I, Điều 2, Khoản 1, 2, 3, 4, 5, trang 1-2"]
+          },
+          {
+            "q": "Mức phụ cấp trực 24/24 giờ vào ngày làm việc đối với người lao động tại cơ sở y tế hạng đặc biệt và hạng I được quy định là bao nhiêu?",
+            "a": "Mức phụ cấp trực 24/24 giờ vào ngày làm việc đối với người lao động làm việc tại cơ sở y tế hạng đặc biệt, hạng I; Viện Pháp y Tâm thần Trung ương, Viện Pháp y Tâm thần Trung ương Biên Hòa là 325.000 đồng/người/phiên trực.",
+            "sources": ["192-ndcp.signed.pdf (Nghị định số 192/2026/NĐ-CP ngày 30/05/2026)", "Chương II, Điều 3, Khoản 3, Điểm a, trang 5"]
+          },
+          {
+            "q": "Mức phụ cấp trực 24/24 giờ vào ngày làm việc tại các cơ sở y tế hạng II và trung tâm giám định pháp y tâm thần khu vực là bao nhiêu?",
+            "a": "Mức phụ cấp trực 24/24 giờ vào ngày làm việc tại các cơ sở y tế hạng II, trung tâm pháp y tâm thần khu vực, Viện Pháp y quân đội, Trung tâm Điều phối Quốc gia về Ghép bộ phận cơ thể người là 255.000 đồng/người/phiên trực.",
+            "sources": ["192-ndcp.signed.pdf (Nghị định số 192/2026/NĐ-CP ngày 30/05/2026)", "Chương II, Điều 3, Khoản 3, Điểm a, trang 5"]
+          },
+          {
+            "q": "Trực 24/24 giờ tại khu vực đặc biệt (cấp cứu, hồi sức tích cực, chống độc, đột quỵ...) được tính hệ số phụ cấp như thế nào?",
+            "a": "Nếu trực 24/24 giờ tại khoa, khu vực đặc biệt quy định tại Điểm b Khoản 1 Điều 3 thì mức phụ cấp trực được tính bằng 1,5 lần mức quy định chung.",
+            "sources": ["192-ndcp.signed.pdf (Nghị định số 192/2026/NĐ-CP ngày 30/05/2026)", "Chương II, Điều 3, Khoản 3, Điểm a, trang 5"]
+          },
+          {
+            "q": "Mức phụ cấp trực 24/24 giờ vào ngày nghỉ hằng tuần, ngày lễ, Tết được tính bằng bao nhiêu lần mức quy định ngày làm việc?",
+            "a": "Nếu trực 24/24 giờ vào ngày nghỉ hằng tuần thì mức phụ cấp trực tính bằng 1,3 lần mức quy định; trực vào ngày lễ, ngày Tết tính bằng 1,8 lần mức quy định.",
+            "sources": ["192-ndcp.signed.pdf (Nghị định số 192/2026/NĐ-CP ngày 30/05/2026)", "Chương II, Điều 3, Khoản 3, Điểm a, trang 5"]
+          },
+          {
+            "q": "Mức hỗ trợ tiền ăn đối với người lao động tham gia trực 24/24 giờ là bao nhiêu?",
+            "a": "Người lao động trực 24/24 giờ được hỗ trợ tiền ăn là 40.000 đồng/người/phiên trực.",
+            "sources": ["192-ndcp.signed.pdf (Nghị định số 192/2026/NĐ-CP ngày 30/05/2026)", "Chương II, Điều 3, Khoản 3, Điểm c, trang 6"]
+          },
+          {
+            "q": "Mức phụ cấp phẫu thuật đối với người mổ chính, người gây mê hồi sức trong ca phẫu thuật Loại đặc biệt là bao nhiêu?",
+            "a": "Mức phụ cấp phẫu thuật loại đặc biệt đối với người mổ chính, người gây mê hồi sức chính hoặc châm tê chính là 560.000 đồng/người/phẫu thuật.",
+            "sources": ["192-ndcp.signed.pdf (Nghị định số 192/2026/NĐ-CP ngày 30/05/2026)", "Chương II, Điều 4, Khoản 1 (Bảng mức phụ cấp), trang 7"]
+          },
+          {
+            "q": "Mức phụ cấp chống dịch hằng ngày đối với người trực tiếp tham gia chống dịch bệnh truyền nhiễm nhóm A (Nhóm 1) vào ngày thường là bao nhiêu?",
+            "a": "Mức phụ cấp chống dịch bệnh truyền nhiễm thuộc nhóm A đối với Nhóm 1 (người trực tiếp giám sát, điều tra, xét nghiệm, điều trị...) vào ngày thường là 420.000 đồng/ngày/người.",
+            "sources": ["192-ndcp.signed.pdf (Nghị định số 192/2026/NĐ-CP ngày 30/05/2026)", "Chương II, Điều 5, Khoản 1, Điểm b, trang 8"]
+          },
+          {
+            "q": "Nhân viên y tế thôn, tổ dân phố làm việc tại các thôn có từ 350 hộ gia đình trở lên hoặc thuộc xã vùng khó khăn được hưởng mức hỗ trợ hằng tháng bằng bao nhiêu?",
+            "a": "Nhân viên y tế thôn, tổ dân phố làm việc tại thôn có từ 350 hộ gia đình trở lên, các thôn/bản tại xã vùng khó khăn hoặc tổ dân phố từ 500 hộ gia đình trở lên được hưởng mức hỗ trợ hằng tháng bằng 0,7 lần mức lương cơ sở.",
+            "sources": ["192-ndcp.signed.pdf (Nghị định số 192/2026/NĐ-CP ngày 30/05/2026)", "Chương III, Điều 7, Khoản 2, Điểm a, trang 11"]
+          },
+          {
+            "q": "Nghị định số 307/2026/NĐ-CP quy định về những nội dung chính nào?",
+            "a": "Nghị định số 307/2026/NĐ-CP quy định về tiêu chí lựa chọn, công nhận người có uy tín trong vùng đồng bào dân tộc thiểu số; chính sách đối với người có uy tín; chính sách thăm hỏi, chúc mừng, tặng quà, động viên, gặp mặt, biểu dương, tôn vinh đối với một số tổ chức, cá nhân người dân tộc thiểu số.",
+            "sources": ["307_2026_nd-cp_04082026-signed.signed.pdf (Nghị định số 307/2026/NĐ-CP ngày 04/08/2026)", "Chương I, Điều 1, Khoản 1, 2, 3, trang 1"]
+          },
+          {
+            "q": "Cơ quan nào có thẩm quyền phê duyệt công nhận, đưa ra khỏi danh sách người có uy tín trong vùng đồng bào dân tộc thiểu số?",
+            "a": "Chủ tịch Ủy ban nhân dân cấp xã có thẩm quyền phê duyệt công nhận, đưa ra khỏi danh sách và thay thế, bổ sung người có uy tín trong vùng đồng bào dân tộc thiểu số.",
+            "sources": ["307_2026_nd-cp_04082026-signed.signed.pdf (Nghị định số 307/2026/NĐ-CP ngày 04/08/2026)", "Chương III, Điều 7, Khoản 1, trang 4"]
+          },
+          {
+            "q": "Người được bầu làm người có uy tín tại cuộc họp thôn phải đạt tỷ lệ đồng ý tối thiểu là bao nhiêu?",
+            "a": "Người được lựa chọn công nhận người có uy tín phải đạt trên 50% tổng số hộ gia đình trong thôn thống nhất thông qua bằng hình thức giơ tay hoặc bỏ phiếu kín.",
+            "sources": ["307_2026_nd-cp_04082026-signed.signed.pdf (Nghị định số 307/2026/NĐ-CP ngày 04/08/2026)", "Chương III, Điều 8, Khoản 1, Điểm a, trang 4"]
+          },
+          {
+            "q": "Người có uy tín được cung cấp thông tin và ấn phẩm báo chí như thế nào?",
+            "a": "Người có uy tín được tập huấn, bồi dưỡng kiến thức hằng năm và được cấp không thu tiền: 01 ấn phẩm báo chí của cơ quan báo chí cấp trung ương (1 tờ/người/kỳ/tháng) và 01 ấn phẩm báo chí của tỉnh (1 tờ/người/kỳ/tháng).",
+            "sources": ["307_2026_nd-cp_04082026-signed.signed.pdf (Nghị định số 307/2026/NĐ-CP ngày 04/08/2026)", "Chương IV, Điều 9, Khoản 1 & Khoản 2, trang 6"]
+          },
+          {
+            "q": "Mức chi thăm hỏi, tặng quà nhân dịp Tết Nguyên đán, Tết truyền thống đối với người có uy tín là bao nhiêu?",
+            "a": "Mức chi thăm hỏi, tặng quà nhân dịp Tết Nguyên đán, Tết hoặc lễ hội truyền thống của các dân tộc thiểu số tối đa 03 lần/người/năm với mức chi 1.000.000 đồng/người/lần.",
+            "sources": ["307_2026_nd-cp_04082026-signed.signed.pdf (Nghị định số 307/2026/NĐ-CP ngày 04/08/2026)", "Chương IV, Điều 10, Khoản 1, Điểm a, trang 6"]
+          },
+          {
+            "q": "Mức chi thăm hỏi, hỗ trợ người có uy tín bị ốm đau khi điều trị tại cấp khám chữa bệnh chuyên sâu tối đa là bao nhiêu?",
+            "a": "Người có uy tín bị ốm đau điều trị tại cấp khám chữa bệnh chuyên sâu được thăm hỏi, hỗ trợ mức thực tế tối đa 5.000.000 đồng/người (không quá 01 lần/năm).",
+            "sources": ["307_2026_nd-cp_04082026-signed.signed.pdf (Nghị định số 307/2026/NĐ-CP ngày 04/08/2026)", "Chương IV, Điều 10, Khoản 1, Điểm b, trang 6"]
+          },
+          {
+            "q": "Mức chi thăm hỏi, hỗ trợ gia đình người có uy tín gặp khó khăn đột xuất do sự cố, thiên tai, hỏa hoạn bị thiệt hại về người là bao nhiêu?",
+            "a": "Gia đình người có uy tín gặp khó khăn đột xuất do sự cố, thiên tai, hỏa hoạn bị thiệt hại về người (chết, mất tích, thương nặng) được thăm hỏi 5.000.000 đồng/người.",
+            "sources": ["307_2026_nd-cp_04082026-signed.signed.pdf (Nghị định số 307/2026/NĐ-CP ngày 04/08/2026)", "Chương IV, Điều 10, Khoản 1, Điểm c, trang 7"]
+          },
+          {
+            "q": "Hội nghị biểu dương, tôn vinh, khen thưởng người có uy tín tiêu biểu cấp trung ương và cấp tỉnh được tổ chức định kỳ mấy năm một lần?",
+            "a": "Định kỳ 05 năm/lần tổ chức Hội nghị biểu dương, tôn vinh, khen thưởng người có uy tín tiêu biểu đối với cấp trung ương và cấp tỉnh.",
+            "sources": ["307_2026_nd-cp_04082026-signed.signed.pdf (Nghị định số 307/2026/NĐ-CP ngày 04/08/2026)", "Chương IV, Điều 11, Khoản 2, trang 7"]
+          },
+          {
+            "q": "Nguồn kinh phí thực hiện chính sách đối với người có uy tín do cơ quan nào bảo đảm?",
+            "a": "Kinh phí thực hiện chính sách đối với người có uy tín và chính sách thăm hỏi đối với các tổ chức, cá nhân người DTTS do ngân sách nhà nước bảo đảm theo phân cấp và huy động các nguồn kinh phí hợp pháp khác.",
+            "sources": ["307_2026_nd-cp_04082026-signed.signed.pdf (Nghị định số 307/2026/NĐ-CP ngày 04/08/2026)", "Chương VI, Điều 14, Khoản 1, 2, 3, trang 10"]
+          },
+          {
+            "q": "Nghị định số 307/2026/NĐ-CP có hiệu lực thi hành kể từ ngày nào?",
+            "a": "Nghị định số 307/2026/NĐ-CP có hiệu lực thi hành kể từ ngày 20 tháng 9 năm 2026.",
+            "sources": ["307_2026_nd-cp_04082026-signed.signed.pdf (Nghị định số 307/2026/NĐ-CP ngày 04/08/2026)", "Chương VII, Điều 16, Khoản 1, trang 12"]
+          },
+          {
+            "q": "Nghị định số 308/2026/NĐ-CP quy định chi tiết về những nội dung gì của Luật Giáo dục nghề nghiệp?",
+            "a": "Nghị định số 308/2026/NĐ-CP quy định chi tiết về chính sách hỗ trợ, khuyến khích doanh nghiệp tham gia hoạt động giáo dục nghề nghiệp; đối tượng, nguồn trích lập, mức trích lập, nhiệm vụ chi của Quỹ đào tạo nhân lực của doanh nghiệp.",
+            "sources": ["308_2026_nd-cp_05082026-signed.signed.pdf (Nghị định số 308/2026/NĐ-CP ngày 05/08/2026)", "Chương I, Điều 1, trang 1"]
+          },
+          {
+            "q": "Doanh nghiệp hợp tác với cơ sở giáo dục nghề nghiệp được khuyến khích tham gia các hoạt động nào?",
+            "a": "Doanh nghiệp được khuyến khích hợp tác nghiên cứu ứng dụng khoa học công nghệ; tham gia xây dựng rà soát chương trình đào tạo; chia sẻ cơ sở vật chất; tổ chức đào tạo/đặt hàng đào tạo; tiếp nhận nhà giáo, học sinh sinh viên đến tham quan, thực tập; đánh giá kết quả học tập và hỗ trợ khởi nghiệp.",
+            "sources": ["308_2026_nd-cp_05082026-signed.signed.pdf (Nghị định số 308/2026/NĐ-CP ngày 05/08/2026)", "Chương II, Điều 4, Khoản 1 (Điểm a - Điểm i), trang 3"]
+          },
+          {
+            "q": "Để được Nhà nước xem xét tôn vinh, khen thưởng, doanh nghiệp tiêu biểu phải sử dụng tối thiểu bao nhiêu % Quỹ đào tạo nhân lực cho hoạt động giáo dục, đào tạo?",
+            "a": "Doanh nghiệp hằng năm có trích lập Quỹ đào tạo nhân lực và sử dụng tối thiểu 70% quỹ hằng năm cho hoạt động giáo dục, đào tạo là một trong các tiêu chí được xem xét tôn vinh, khen thưởng.",
+            "sources": ["308_2026_nd-cp_05082026-signed.signed.pdf (Nghị định số 308/2026/NĐ-CP ngày 05/08/2026)", "Chương II, Điều 5, Khoản 1, trang 4"]
+          },
+          {
+            "q": "Doanh nghiệp thành lập Quỹ đào tạo nhân lực nhằm mục đích gì?",
+            "a": "Quỹ đào tạo nhân lực của doanh nghiệp do doanh nghiệp lựa chọn, quyết định thành lập nhằm bảo đảm các hoạt động giáo dục, đào tạo, phát triển nguồn nhân lực của doanh nghiệp được thường xuyên, liên tục, đáp ứng yêu cầu sản xuất, kinh doanh.",
+            "sources": ["308_2026_nd-cp_05082026-signed.signed.pdf (Nghị định số 308/2026/NĐ-CP ngày 05/08/2026)", "Chương III, Điều 7, Khoản 1, trang 5"]
+          },
+          {
+            "q": "Mức trích lập Quỹ đào tạo nhân lực hằng năm từ lợi nhuận sau thuế của doanh nghiệp nhà nước nắm giữ 100% vốn điều lệ tối đa là bao nhiêu?",
+            "a": "Đối với doanh nghiệp nhà nước nắm giữ 100% vốn điều lệ, tổng giá trị của Phần Quỹ có nguồn từ lợi nhuận sau thuế tối đa không quá 0,1% lợi nhuận sau thuế.",
+            "sources": ["308_2026_nd-cp_05082026-signed.signed.pdf (Nghị định số 308/2026/NĐ-CP ngày 05/08/2026)", "Chương III, Điều 7, Khoản 3, Điểm a, trang 6"]
+          },
+          {
+            "q": "Quỹ đào tạo nhân lực của doanh nghiệp được sử dụng cho các nhiệm vụ chi nào?",
+            "a": "Quỹ được chi cho: Đào tạo, phát triển kỹ năng cho người lao động; tài trợ cho cơ sở giáo dục nghề nghiệp có hợp tác với doanh nghiệp; hỗ trợ người lao động học tập nâng cao trình độ; trang thiết bị phục vụ đào tạo tại doanh nghiệp.",
+            "sources": ["308_2026_nd-cp_05082026-signed.signed.pdf (Nghị định số 308/2026/NĐ-CP ngày 05/08/2026)", "Chương III, Điều 8, Khoản 1, Điểm a & Điểm b, trang 6-7"]
+          },
+          {
+            "q": "Nội dung chi tài trợ của doanh nghiệp cho cơ sở giáo dục nghề nghiệp hợp tác bao gồm những khoản nào?",
+            "a": "Bao gồm: Tài trợ cơ sở vật chất, thiết bị dạy học, phòng thí nghiệm; tài trợ cho các hoạt động thường xuyên của trường; tài trợ các cuộc thi kỹ năng nghề; tài trợ thành lập Quỹ khuyến học; tài trợ xây dựng chương trình, giáo trình đào tạo theo đặt hàng.",
+            "sources": ["308_2026_nd-cp_05082026-signed.signed.pdf (Nghị định số 308/2026/NĐ-CP ngày 05/08/2026)", "Chương III, Điều 8, Khoản 1, Điểm b, trang 6-7"]
+          },
+          {
+            "q": "Việc quản lý và hạch toán kế toán Quỹ đào tạo nhân lực của doanh nghiệp được thực hiện như thế nào?",
+            "a": "Việc quản lý, sử dụng Quỹ phải được quy định tại điều lệ hoặc quy chế của doanh nghiệp. Việc hạch toán kế toán của Quỹ được thực hiện theo quy định của pháp luật về kế toán.",
+            "sources": ["308_2026_nd-cp_05082026-signed.signed.pdf (Nghị định số 308/2026/NĐ-CP ngày 05/08/2026)", "Chương III, Điều 8, Khoản 2 & Khoản 3, trang 7"]
+          },
+          {
+            "q": "Bộ nào chủ trì hướng dẫn thực hiện chính sách hỗ trợ kinh phí đào tạo nghề cho doanh nghiệp?",
+            "a": "Bộ Giáo dục và Đào tạo chủ trì, phối hợp với Bộ Nội vụ và các bộ, ngành liên quan hướng dẫn thực hiện các nội dung hỗ trợ doanh nghiệp hợp tác giáo dục nghề nghiệp và tôn vinh khen thưởng.",
+            "sources": ["308_2026_nd-cp_05082026-signed.signed.pdf (Nghị định số 308/2026/NĐ-CP ngày 05/08/2026)", "Chương IV, Điều 9, Khoản 1, trang 7"]
+          },
+          {
+            "q": "Nghị định số 308/2026/NĐ-CP có hiệu lực thi hành kể từ ngày nào?",
+            "a": "Nghị định số 308/2026/NĐ-CP có hiệu lực thi hành kể từ ngày 05 tháng 8 năm 2026.",
+            "sources": ["308_2026_nd-cp_05082026-signed.signed.pdf (Nghị định số 308/2026/NĐ-CP ngày 05/08/2026)", "Chương IV, Điều 10, Khoản 1, trang 7"]
+          },
+          {
+            "q": "Mức chuẩn trợ cấp ưu đãi người có công với cách mạng theo Nghị định số 321/2026/NĐ-CP là bao nhiêu?",
+            "a": "Mức chuẩn trợ cấp ưu đãi người có công với cách mạng là 3.012.000 đồng làm căn cứ để tính mức hưởng trợ cấp, phụ cấp và các chế độ ưu đãi.",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Chương II, Điều 3, Khoản 1, trang 1"]
+          },
+          {
+            "q": "Mức chi điều dưỡng phục hồi sức khỏe tại nhà cho người có công được quy định như thế nào?",
+            "a": "Mức chi điều dưỡng phục hồi sức khỏe tại nhà bằng 0,9 lần mức chuẩn/người/lần (tương đương 2.710.800 đồng) và được chi trả trực tiếp cho đối tượng.",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Chương III, Điều 6, Khoản 1, trang 2"]
+          },
+          {
+            "q": "Mức chi điều dưỡng phục hồi sức khỏe tập trung cho người có công được quy định như thế nào?",
+            "a": "Mức chi điều dưỡng phục hồi sức khỏe tập trung bằng 1,8 lần mức chuẩn/người/lần (tương đương 5.421.600 đồng), bao gồm tiền ăn, thuốc thiết yếu, quà tặng, tham quan...",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Chương III, Điều 6, Khoản 2, trang 2"]
+          },
+          {
+            "q": "Mức hưởng hỗ trợ giáo dục hằng năm cho con người có công đang theo học tại các cơ sở giáo dục mầm non là bao nhiêu?",
+            "a": "Mức hưởng hỗ trợ trang cấp đồ dùng học tập tại cơ sở giáo dục mầm non bằng 0,4 lần mức chuẩn/đối tượng/năm.",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Chương III, Điều 8, Khoản 1, trang 3"]
+          },
+          {
+            "q": "Mức hưởng hỗ trợ giáo dục hằng năm cho con người có công đang theo học tại các cơ sở giáo dục phổ thông, đại học là bao nhiêu?",
+            "a": "Mức hưởng hỗ trợ giáo dục tại cơ sở giáo dục phổ thông, thường xuyên, nghề nghiệp, đại học bằng 0,8 lần mức chuẩn/đối tượng/năm.",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Chương III, Điều 8, Khoản 2, trang 3"]
+          },
+          {
+            "q": "Mức hỗ trợ di chuyển hài cốt liệt sĩ bao gồm những khoản tiền nào?",
+            "a": "Bao gồm: Mức hỗ trợ tiền cất bốc hài cốt liệt sĩ là 5.000.000 đồng/hài cốt liệt sĩ; Mức hỗ trợ tiền đi lại và tiền ăn tính theo khoảng cách từ nơi cư trú đến nơi có mộ liệt sĩ là 5.000 đồng/km/người (tối đa 03 người).",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Chương III, Điều 10, Khoản 1 & Khoản 2, trang 3"]
+          },
+          {
+            "q": "Mức hỗ trợ một lần kinh phí xây vỏ mộ liệt sĩ an táng ngoài nghĩa trang liệt sĩ là bao nhiêu?",
+            "a": "Mức hỗ trợ một lần kinh phí xây mộ liệt sĩ đối với hài cốt an táng ngoài nghĩa trang liệt sĩ là 10.000.000 đồng/mộ.",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Chương III, Điều 11, Khoản 1, Điểm a, trang 4"]
+          },
+          {
+            "q": "Mức trợ cấp thờ cúng liệt sĩ hằng năm được quy định là bao nhiêu?",
+            "a": "Mức trợ cấp thờ cúng liệt sĩ hằng năm là 1.600.000 đồng/liệt sĩ/năm.",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Chương III, Điều 13, Khoản 2, trang 6"]
+          },
+          {
+            "q": "Thương binh, bệnh binh có tỷ lệ tổn thương cơ thể từ 81% trở lên được hỗ trợ tiền ăn thêm vào các ngày lễ, Tết với mức chi bao nhiêu?",
+            "a": "Thương binh, bệnh binh, người hưởng chính sách như thương binh có tỷ lệ tổn thương cơ thể từ 81% trở lên được chi tiền ăn thêm ngày lễ, Tết mức 600.000 đồng/người/ngày.",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Chương III, Điều 13, Khoản 3, trang 6"]
+          },
+          {
+            "q": "Mức hỗ trợ phục vụ công tác nuôi dưỡng người có công tại cơ sở nuôi dưỡng do ngành Nội vụ quản lý tối đa là bao nhiêu?",
+            "a": "Mức hỗ trợ phục vụ công tác nuôi dưỡng người có công tại các cơ sở nuôi dưỡng tối đa là 11.000.000 đồng/đối tượng/năm.",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Chương III, Điều 13, Khoản 5, trang 7"]
+          },
+          {
+            "q": "Mức trợ cấp tuất hằng tháng đối với thân nhân của 01 liệt sĩ là bao nhiêu?",
+            "a": "Mức trợ cấp tuất hằng tháng đối với thân nhân của 01 liệt sĩ là 3.012.000 đồng/tháng (bằng 1,0 lần mức chuẩn).",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Phụ lục I, Mục 3, Tiểu mục 3.2, trang 2"]
+          },
+          {
+            "q": "Mức trợ cấp tuất hằng tháng đối với Bà mẹ Việt Nam anh hùng là bao nhiêu?",
+            "a": "Bà mẹ Việt Nam anh hùng hưởng mức trợ cấp tuất hằng tháng là 9.036.000 đồng và phụ cấp hằng tháng là 2.524.000 đồng.",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Phụ lục I, Mục 4, trang 2"]
+          },
+          {
+            "q": "Mức trợ cấp một lần đối với Bà mẹ Việt Nam anh hùng được tặng hoặc truy tặng danh hiệu là bao nhiêu lần mức chuẩn?",
+            "a": "Mức trợ cấp một lần đối với đại diện thân nhân Bà mẹ Việt Nam anh hùng được truy tặng danh hiệu là 31,0 lần mức chuẩn.",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Phụ lục IV, Mục 1, Tiểu mục 1.1, trang 1"]
+          },
+          {
+            "q": "Bộ nào có trách nhiệm quản lý kinh phí chi thường xuyên từ ngân sách trung ương cho chính sách ưu đãi người có công?",
+            "a": "Bộ Nội vụ có trách nhiệm quản lý kinh phí chi thường xuyên nguồn ngân sách trung ương giao thực hiện Pháp lệnh Ưu đãi người có công đối với các đối tượng thuộc Bộ quản lý.",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Chương IV, Điều 14, Khoản 1, trang 9"]
+          },
+          {
+            "q": "Nghị định số 321/2026/NĐ-CP quy định thời điểm có hiệu lực thi hành chung là khi nào?",
+            "a": "Nghị định số 321/2026/NĐ-CP có hiệu lực thi hành từ ngày 01 tháng 10 năm 2026 (riêng các chế độ quy định tại Điều 4, 5, 8, 12 thực hiện từ 01/07/2026).",
+            "sources": ["321_2026_nd-cp_15082026-signed.signed.pdf (Nghị định số 321/2026/NĐ-CP ngày 15/08/2026)", "Chương IV, Điều 15, Khoản 1 & Khoản 2, trang 9"]
+          },
+          {
+            "q": "Nghị định số 338/2026/NĐ-CP sửa đổi, bổ sung quy định về chế độ gì trong Quân đội?",
+            "a": "Nghị định số 338/2026/NĐ-CP sửa đổi, bổ sung một số điều của 03 Nghị định của Chính phủ về chế độ trợ cấp một lần khi thôi phục vụ trong Quân đội đối với sĩ quan, quân nhân chuyên nghiệp, công nhân và viên chức quốc phòng.",
+            "sources": ["338_2026_nd-cp_26082026-signed.signed.pdf (Nghị định số 338/2026/NĐ-CP ngày 26/08/2026)", "Tên Nghị định & Mở đầu, trang 1"]
+          },
+          {
+            "q": "Sĩ quan nghỉ hưu trước hạn tuổi cao nhất do thay đổi tổ chức, biên chế được hưởng trợ cấp một lần như thế nào cho mỗi năm nghỉ hưu trước hạn?",
+            "a": "Sĩ quan nghỉ hưu trước hạn tuổi cao nhất do dôi dư do thay đổi tổ chức/biên chế được trợ cấp một lần bằng 05 tháng tiền lương cho mỗi năm nghỉ hưu trước hạn tuổi.",
+            "sources": ["338_2026_nd-cp_26082026-signed.signed.pdf (Nghị định số 338/2026/NĐ-CP ngày 26/08/2026)", "Chương I, Điều 1 (Sửa đổi Khoản 2 Điều 2 Nghị định 21/2009/NĐ-CP), trang 1-2"]
+          },
+          {
+            "q": "Mức trợ cấp một lần cho thời gian công tác có đóng BHXH bắt buộc đối với sĩ quan nghỉ hưu trước hạn tuổi được tính ra sao?",
+            "a": "được trợ cấp bằng 05 tháng tiền lương cho 20 năm đầu công tác; từ năm thứ 21 trở đi, cứ mỗi năm công tác được trợ cấp bằng 1/2 tháng tiền lương.",
+            "sources": ["338_2026_nd-cp_26082026-signed.signed.pdf (Nghị định số 338/2026/NĐ-CP ngày 26/08/2026)", "Chương I, Điều 1 (Sửa đổi Khoản 2 Điều 2), Điểm b, trang 2"]
+          },
+          {
+            "q": "Sĩ quan phục viên được hưởng chế độ trợ cấp tạo việc làm bằng bao nhiêu tháng tiền lương?",
+            "a": "Sĩ quan phục viên được hưởng trợ cấp tạo việc làm bằng 03 tháng tiền lương; đồng thời được hỗ trợ đào tạo nghề hoặc giới thiệu việc làm.",
+            "sources": ["338_2026_nd-cp_26082026-signed.signed.pdf (Nghị định số 338/2026/NĐ-CP ngày 26/08/2026)", "Chương I, Điều 2 (Sửa đổi Điều 4), Khoản 1, trang 2"]
+          },
+          {
+            "q": "Mức trợ cấp phục viên một lần cho mỗi năm công tác có đóng BHXH bắt buộc đối với sĩ quan là bao nhiêu?",
+            "a": "Cứ mỗi năm công tác có đóng bảo hiểm xã hội bắt buộc được trợ cấp phục viên một lần bằng 1,5 tháng tiền lương.",
+            "sources": ["338_2026_nd-cp_26082026-signed.signed.pdf (Nghị định số 338/2026/NĐ-CP ngày 26/08/2026)", "Chương I, Điều 2 (Sửa đổi Điều 4), Khoản 2, trang 3"]
+          },
+          {
+            "q": "Tiền lương làm căn cứ tính hưởng chế độ trợ cấp một lần khi thôi phục vụ trong Quân đội được xác định như thế nào?",
+            "a": "Là tiền lương làm căn cứ đóng BHXH bắt buộc của tháng liền kề trước thời điểm nghỉ hưu, phục viên, chuyển ngành, thôi việc, nghỉ theo chế độ bệnh binh hoặc tiền lương tháng liền kề trước khi hy sinh, từ trần.",
+            "sources": ["338_2026_nd-cp_26082026-signed.signed.pdf (Nghị định số 338/2026/NĐ-CP ngày 26/08/2026)", "Chương I, Điều 3 (Sửa đổi Điều 10), Khoản 1, trang 3"]
+          },
+          {
+            "q": "Quy tắc làm tròn tháng lẻ trong tính thời gian nghỉ hưu trước hạn tuổi cao nhất đối với sĩ quan được quy định như thế nào?",
+            "a": "Từ 01 tháng đến đủ 06 tháng tính là 0,5 năm và được tính hưởng trợ cấp bằng mức 0,5 năm; từ trên 06 tháng đến dưới 12 tháng tính tròn là 01 năm.",
+            "sources": ["338_2026_nd-cp_26082026-signed.signed.pdf (Nghị định số 338/2026/NĐ-CP ngày 26/08/2026)", "Chương I, Điều 3 (Sửa đổi Điều 10), Khoản 2, Điểm c, trang 4"]
+          },
+          {
+            "q": "Quân nhân chuyên nghiệp dôi dư do thay đổi tổ chức biên chế khi nghỉ hưu trước hạn tuổi được trợ cấp một lần bao nhiêu tiền lương cho mỗi năm nghỉ trước hạn?",
+            "a": "Được trợ cấp một lần bằng 05 tháng tiền lương cho mỗi năm nghỉ hưu trước hạn tuổi.",
+            "sources": ["338_2026_nd-cp_26082026-signed.signed.pdf (Nghị định số 338/2026/NĐ-CP ngày 26/08/2026)", "Chương II, Điều 5 (Sửa đổi Khoản 2 Điều 3 Nghị định 151/2016/NĐ-CP), Điểm a, trang 5"]
+          },
+          {
+            "q": "Công nhân và viên chức quốc phòng khi chuyển ngành sang làm việc tại các cơ quan, đơn vị không hưởng lương từ ngân sách nhà nước được trợ cấp một lần như thế nào?",
+            "a": "Cứ mỗi năm công tác được trợ cấp bằng 1,5 tháng tiền lương do cơ quan, đơn vị, doanh nghiệp thuộc Bộ Quốc phòng quản lý chi trả trước khi thôi việc/chuyển ngành.",
+            "sources": ["338_2026_nd-cp_26082026-signed.signed.pdf (Nghị định số 338/2026/NĐ-CP ngày 26/08/2026)", "Chương III, Điều 8 (Sửa đổi Khoản 2 Điều 3 Nghị định 19/2022/NĐ-CP), trang 7"]
+          },
+          {
+            "q": "Nghị định số 338/2026/NĐ-CP có hiệu lực thi hành từ ngày nào?",
+            "a": "Nghị định số 338/2026/NĐ-CP có hiệu lực thi hành từ ngày 26 tháng 8 năm 2026 (mức hưởng trợ cấp, thời gian, tiền lương làm căn cứ tính áp dụng đối với trường hợp từ 01/09/2026).",
+            "sources": ["338_2026_nd-cp_26082026-signed.signed.pdf (Nghị định số 338/2026/NĐ-CP ngày 26/08/2026)", "Chương IV, Điều 10, Khoản 1 & Khoản 2, trang 8"]
+          },
+          {
+            "q": "Nghị định số 381/2026/NĐ-CP quy định về chế độ phụ cấp gì đối với cán bộ, công chức cấp xã?",
+            "a": "Nghị định số 381/2026/NĐ-CP quy định về chế độ phụ cấp công vụ đối với cán bộ, công chức làm việc trong các cơ quan của Đảng, Nhà nước, Mặt trận Tổ quốc Việt Nam, tổ chức chính trị - xã hội ở xã, phường, đặc khu.",
+            "sources": ["381_202.pdf (Nghị định số 381/2026/NĐ-CP ngày 02/10/2026)", "Điều 1, trang 1"]
+          },
+          {
+            "q": "Mức phụ cấp công vụ bằng 55% áp dụng đối với đối tượng cán bộ, công chức cấp xã nào?",
+            "a": "Mức 55% mức lương hiện hưởng cộng phụ cấp chức vụ lãnh đạo và phụ cấp thâm niên vượt khung (nếu có) áp dụng đối với cán bộ, công chức cấp xã KHÔNG hưởng tiền lương, thu nhập tăng thêm theo Nghị quyết của HĐND cấp tỉnh.",
+            "sources": ["381_202.pdf (Nghị định số 381/2026/NĐ-CP ngày 02/10/2026)", "Điều 3, Khoản 1, trang 1"]
+          },
+          {
+            "q": "Mức phụ cấp công vụ bằng 25% áp dụng đối với cán bộ, công chức cấp xã trong trường hợp nào?",
+            "a": "Áp dụng đối với cán bộ, công chức cấp xã ĐÃ ĐƯỢC HƯỞNG tiền lương, thu nhập tăng thêm theo Nghị quyết của Hội đồng nhân dân dân tỉnh, thành phố về chi tiền lương, thu nhập tăng thêm.",
+            "sources": ["381_202.pdf (Nghị định số 381/2026/NĐ-CP ngày 02/10/2026)", "Điều 3, Khoản 2, trang 1"]
+          },
+          {
+            "q": "Trường hợp cán bộ, công chức cấp xã hưởng tiền lương/thu nhập tăng thêm thấp hơn mức 55% phụ cấp công vụ thì được xử lý như thế nào?",
+            "a": "Trường hợp được hưởng mức tiền lương, thu nhập tăng thêm thấp hơn mức phụ cấp công vụ 55% thì được hưởng chênh lệch cho bằng mức phụ cấp công vụ 55%.",
+            "sources": ["381_202.pdf (Nghị định số 381/2026/NĐ-CP ngày 02/10/2026)", "Điều 3, Khoản 3, trang 2"]
+          },
+          {
+            "q": "Phụ cấp công vụ cán bộ công chức cấp xã có được dùng để tính đóng, hưởng bảo hiểm xã hội, bảo hiểm y tế không?",
+            "a": "Phụ cấp công vụ được chi trả cùng kỳ lương hằng tháng và KHÔNG dùng để tính đóng, hưởng bảo hiểm xã hội, bảo hiểm y tế.",
+            "sources": ["381_202.pdf (Nghị định số 381/2026/NĐ-CP ngày 02/10/2026)", "Điều 4, Khoản 1, trang 2"]
+          },
+          {
+            "q": "Thời gian đi công tác, học tập ở nước ngoài hưởng 40% tiền lương có được tính hưởng phụ cấp công vụ không?",
+            "a": "Thời gian đi công tác, làm việc học tập ở nước ngoài được hưởng 40% tiền lương theo quy định KHÔNG được tính hưởng phụ cấp công vụ.",
+            "sources": ["381_202.pdf (Nghị định số 381/2026/NĐ-CP ngày 02/10/2026)", "Điều 4, Khoản 2, Điểm a, trang 2"]
+          },
+          {
+            "q": "Thời gian nghỉ việc không hưởng lương liên tục từ bao lâu trở lên thì không được tính hưởng phụ cấp công vụ?",
+            "a": "Thời gian nghỉ việc không hưởng lương liên tục từ 01 tháng trở lên không được tính hưởng phụ cấp công vụ.",
+            "sources": ["381_202.pdf (Nghị định số 381/2026/NĐ-CP ngày 02/10/2026)", "Điều 4, Khoản 2, Điểm b, trang 2"]
+          },
+          {
+            "q": "Cán bộ, công chức cấp xã bị tạm đình chỉ công tác hoặc bị tạm giữ, tạm giam có được hưởng phụ cấp công vụ trong thời gian đó không?",
+            "a": "Thời gian bị tạm đình chỉ công tác hoặc bị tạm giữ, tạm giam KHÔNG được tính hưởng phụ cấp công vụ.",
+            "sources": ["381_202.pdf (Nghị định số 381/2026/NĐ-CP ngày 02/10/2026)", "Điều 4, Khoản 2, Điểm d, trang 2"]
+          },
+          {
+            "q": "Nguồn kinh phí chi trả phụ cấp công vụ đối với cán bộ, công chức cấp xã do đâu bảo đảm?",
+            "a": "Nguồn kinh phí chi trả phụ cấp công vụ do ngân sách nhà nước bảo đảm theo phân cấp và tổng hợp vào nhu cầu cải cách tiền lương hằng năm của các địa phương.",
+            "sources": ["381_202.pdf (Nghị định số 381/2026/NĐ-CP ngày 02/10/2026)", "Điều 5, trang 2"]
+          },
+          {
+            "q": "Chế độ phụ cấp công vụ quy định tại Nghị định số 381/2026/NĐ-CP được áp dụng hồi thố từ thời điểm nào?",
+            "a": "Chế độ phụ cấp công vụ quy định tại Nghị định này được áp dụng kể từ ngày 01 tháng 7 năm 2026 đến khi thực hiện cải cách chính sách tiền lương.",
+            "sources": ["381_202.pdf (Nghị định số 381/2026/NĐ-CP ngày 02/10/2026)", "Điều 6, Khoản 2, trang 2"]
+          },
+          {
+            "q": "Văn bản hợp nhất số 55/2026/VBHN-NĐ-BQP hợp nhất các văn bản quy phạm pháp luật nào?",
+            "a": "Hợp nhất Nghị định số 151/2016/NĐ-CP ngày 11/11/2016 và Nghị định số 338/2026/NĐ-CP ngày 26/08/2026 của Chính phủ quy định chi tiết và hướng dẫn thi hành một số điều về chế độ, chính sách của Luật Quân nhân chuyên nghiệp, công nhân và viên chức quốc phòng.",
+            "sources": ["55-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 55/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Căn cứ & Mở đầu, trang 1"]
+          },
+          {
+            "q": "Quân nhân chuyên nghiệp phục viên được hưởng chế độ trợ cấp tạo việc làm bằng bao nhiêu tháng tiền lương cơ sở?",
+            "a": "Được hưởng trợ cấp tạo việc làm bằng 06 tháng tiền lương cơ sở theo quy định của Chính phủ tại thời điểm phục viên.",
+            "sources": ["55-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 55/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 4, Khoản 1, trang 5 (Trích Nghị định 151/2016/NĐ-CP)"]
+          },
+          {
+            "q": "Thân nhân của quân nhân chuyên nghiệp, công nhân và viên chức quốc phòng hy sinh trong khi phục vụ Quân đội được trợ cấp một lần như thế nào?",
+            "a": "Được hưởng trợ cấp một lần, cứ mỗi năm công tác được trợ cấp bằng 01 tháng tiền lương của tháng liền kề trước khi hy sinh.",
+            "sources": ["55-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 55/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 6, Khoản 1, trang 5"]
+          },
+          {
+            "q": "Thân nhân của quân nhân chuyên nghiệp, công nhân quốc phòng hưởng trợ cấp một lần khi hy sinh, từ trần bao gồm những ai?",
+            "a": "Bao gồm: Vợ hoặc chồng; bố đẻ, mẹ đẻ; bố đẻ, mẹ đẻ của vợ hoặc chồng; người nuôi dưỡng hợp pháp; con đẻ, con nuôi hợp pháp.",
+            "sources": ["55-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 55/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 6, Khoản 3, trang 6"]
+          },
+          {
+            "q": "Thời gian trực tiếp chiến đấu, phục vụ chiến đấu của quân nhân chuyên nghiệp được quy đổi để tính trợ cấp một lần theo hệ số nào?",
+            "a": "Có thời gian trực tiếp chiến đấu, phục vụ chiến đấu thì thời gian đó được quy đổi theo hệ số 01 năm bằng 01 năm 06 tháng.",
+            "sources": ["55-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 55/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 7, Khoản 1, Điểm a, trang 6"]
+          },
+          {
+            "q": "Thời gian công tác ở địa bàn có phụ cấp đặc biệt mức 100% hoặc làm nghề đặc biệt nặng nhọc, độc hại được quy đổi theo hệ số nào?",
+            "a": "Được quy đổi theo hệ số 01 năm bằng 01 năm 04 tháng.",
+            "sources": ["55-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 55/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 7, Khoản 1, Điểm b, trang 6"]
+          },
+          {
+            "q": "Thời gian công tác ở địa bàn có phụ cấp khu vực từ hệ số 0,7 trở lên được quy đổi theo hệ số nào?",
+            "a": "Được quy đổi theo hệ số 01 năm bằng 01 năm 02 tháng.",
+            "sources": ["55-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 55/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 7, Khoản 1, Điểm c, trang 6"]
+          },
+          {
+            "q": "Trường hợp quân nhân có nhiều thời gian công tác được quy đổi theo các hệ số khác nhau thì áp dụng nguyên tắc nào?",
+            "a": "Trường hợp trong cùng một thời gian công tác nếu có đủ 02 hoặc 03 điều kiện nêu trên thì chỉ được hưởng theo mức quy đổi cao nhất.",
+            "sources": ["55-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 55/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 7, Khoản 1 (Đoạn cuối), trang 6"]
+          },
+          {
+            "q": "Mức trợ cấp cho thời gian tăng thêm do quy đổi thời gian công tác được tính như thế nào?",
+            "a": "Thời gian tăng thêm do quy đổi được tính hưởng chế độ trợ cấp một lần với mức cứ một năm tăng thêm do quy đổi được trợ cấp bằng 01 tháng tiền lương.",
+            "sources": ["55-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 55/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 7, Khoản 2, trang 7"]
+          },
+          {
+            "q": "Kinh phí thực hiện các chế độ trợ cấp đối với quân nhân chuyên nghiệp, công nhân quốc phòng thôi phục vụ do nguồn nào bảo đảm?",
+            "a": "Do ngân sách nhà nước bảo đảm theo quy định của Luật Ngân sách nhà nước.",
+            "sources": ["55-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 55/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 9, Khoản 1, trang 7"]
+          },
+          {
+            "q": "Văn bản hợp nhất số 56/2026/VBHN-NĐ-BQP quy định về chế độ chính sách đối với những đối tượng nào khi chuyển ngành, thôi việc?",
+            "a": "Quy định biện pháp thi hành chế độ, chính sách đối với quân nhân chuyên nghiệp, công nhân và viên chức quốc phòng chuyển ngành, công nhân và viên chức quốc phòng thôi việc.",
+            "sources": ["56-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 56/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 1, Khoản 1, trang 2"]
+          },
+          {
+            "q": "Quân nhân chuyên nghiệp chuyển ngành sang cơ quan nhà nước hưởng lương từ ngân sách nhà nước được hưởng quyền ưu tiên gì?",
+            "a": "Được ưu tiên bố trí công việc phù hợp với ngành nghề chuyên môn; được đào tạo bồi dưỡng chuyên môn nghiệp vụ; được miễn thi tuyển/xét tuyển nếu chuyển về cơ quan cũ.",
+            "sources": ["56-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 56/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 2, Khoản 1, Điểm a & Điểm b, trang 2"]
+          },
+          {
+            "q": "Thời gian bảo lưu mức lương và phụ cấp thâm niên đối với quân nhân chuyên nghiệp chuyển ngành có lương mới thấp hơn lương cũ là bao lâu?",
+            "a": "Được bảo lưu mức lương và phụ cấp thâm niên tại thời điểm chuyển ngành trong thời gian 18 tháng kể từ ngày quyết định chuyển ngành có hiệu lực.",
+            "sources": ["56-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 56/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 2, Khoản 1, Điểm c, trang 3"]
+          },
+          {
+            "q": "Quân nhân chuyên nghiệp chuyển ngành sang làm việc tại các doanh nghiệp không hưởng lương ngân sách nhà nước được hưởng trợ cấp như thế nào?",
+            "a": "Được bảo lưu thời gian đã đóng BHXH; được hưởng trợ cấp một lần cứ mỗi năm công tác được trợ cấp bằng 01 tháng tiền lương do cơ quan Bộ Quốc phòng chi trả.",
+            "sources": ["56-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 56/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 2, Khoản 2, Điểm a & Điểm b, trang 4"]
+          },
+          {
+            "q": "Quân nhân chuyên nghiệp đã chuyển ngành nhưng do yêu cầu nhiệm vụ được quyết định trở lại phục vụ Quân đội thì thời gian chuyển ngành được tính thế nào?",
+            "a": "Thời gian chuyển ngành công tác tại cơ quan, tổ chức hưởng lương ngân sách nhà nước được tính vào thời gian công tác liên tục để xét nâng lương, phiên quân hàm và tính thâm niên.",
+            "sources": ["56-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 56/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 2, Khoản 3, trang 4"]
+          },
+          {
+            "q": "Quân nhân chuyên nghiệp đã phục viên về địa phương trong thời gian không quá 12 tháng nếu được tuyển dụng vào cơ quan nhà nước thì giải quyết chế độ ra sao?",
+            "a": "Được thực hiện chế độ chuyển ngành, đồng thời phải hoàn trả khoản trợ cấp phục viên một lần và trợ cấp bảo hiểm xã hội một lần đã nhận.",
+            "sources": ["56-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 56/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 2, Khoản 4, Điểm a, trang 4"]
+          },
+          {
+            "q": "Công nhân và viên chức quốc phòng thôi việc được hưởng trợ cấp một lần như thế nào?",
+            "a": "Được hưởng chế độ bảo hiểm xã hội và cứ mỗi năm công tác được trợ cấp bằng 01 tháng tiền lương của tháng liền kề trước khi thôi việc.",
+            "sources": ["56-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 56/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 3, Khoản 1 & Khoản 2, trang 5"]
+          },
+          {
+            "q": "Thành phần tiền lương tháng làm căn cứ tính trợ cấp thôi việc, chuyển ngành đối với quân nhân chuyên nghiệp gồm các khoản nào?",
+            "a": "Tiền lương theo loại, nhóm, bậc đối với QNCN, công nhân quốc phòng; nhóm, ngạch, bậc đối với viên chức quốc phòng cộng phụ cấp chức vụ, thâm niên nghề, thâm niên vượt khung và chênh lệch bảo lưu (nếu có).",
+            "sources": ["56-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 56/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 4, Khoản 1, trang 5"]
+          },
+          {
+            "q": "Quy tắc tính tháng lẻ đối với thời gian công tác để tính trợ cấp thôi việc được quy định như thế nào?",
+            "a": "Dưới 03 tháng không tính; từ đủ 03 tháng đến đủ 06 tháng được tính là 1/2 năm (0,5 năm); từ trên 06 tháng đến dưới 12 tháng được tính tròn là 01 năm.",
+            "sources": ["56-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 56/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 4, Khoản 2, Điểm b, trang 6"]
+          },
+          {
+            "q": "Nguồn kinh phí chi trả trợ cấp một lần, trợ cấp thôi việc đối với thời gian công tác trong Quân đội do ai bảo đảm?",
+            "a": "Do ngân sách nhà nước bảo đảm theo quy định của Luật Ngân sách nhà nước.",
+            "sources": ["56-vbhn-bqp.signed.pdf (Văn bản hợp nhất số 56/2026/VBHN-NĐ-BQP ngày 15/09/2026)", "Điều 5, trang 6"]
+          },
+          {
+            "q": "Công điện số 62/CĐ-TTg ngày 31/8/2026 của Thủ tướng Chính phủ được gửi tới các cơ quan, địa phương nào?",
+            "a": "Gửi Chủ tịch UBND tỉnh Điện Biên và Bộ trưởng các Bộ: Giáo dục và Đào tạo, Lao động - Thương binh và Xã hội, Tài chính, Dân tộc.",
+            "sources": ["62_cd-ttg_31082026-signed.signed.pdf (Công điện số 62/CĐ-TTg ngày 31/08/2026)", "Phần Kính gửi, trang 1"]
+          },
+          {
+            "q": "Nội dung phản ánh của báo chí dẫn đến việc Thủ tướng Chính phủ ban hành Công điện 62/CĐ-TTg là gì?",
+            "a": "Báo chí phản ánh về việc trường học tại tỉnh Điện Biên phải vận động quyên góp gạo và các điều kiện thiết yếu cho học sinh vùng cao, vùng đồng bào dân tộc thiểu số đến trường.",
+            "sources": ["62_cd-ttg_31082026-signed.signed.pdf (Công điện số 62/CĐ-TTg ngày 31/08/2026)", "Mục 1, trang 1"]
+          },
+          {
+            "q": "Thủ tướng Chính phủ chỉ đạo Chủ tịch UBND tỉnh Điện Biên thực hiện nhiệm vụ khẩn cấp nào trong Công điện 62/CĐ-TTg?",
+            "a": "Chỉ đạo khẩn trương rà soát, kiểm tra, xác minh thông tin báo chí phản ánh; có giải pháp kịp thời hỗ trợ đầy đủ lương thực, thực phẩm, điều kiện sinh hoạt, học tập cho học sinh, không để học sinh bỏ học vì thiếu ăn, thiếu mặc.",
+            "sources": ["62_cd-ttg_31082026-signed.signed.pdf (Công điện số 62/CĐ-TTg ngày 31/08/2026)", "Mục 1, trang 1"]
+          },
+          {
+            "q": "Bộ Giáo dục và Đào tạo được giao nhiệm vụ gì trong Công điện 62/CĐ-TTg?",
+            "a": "Chủ trì, phối hợp với các bộ, ngành kiểm tra, rà soát việc thực hiện chính sách hỗ trợ học sinh và trường phổ thông ở xã, thôn đặc biệt khó khăn; kịp thời đề xuất sửa đổi các vướng mắc cơ chế chính sách.",
+            "sources": ["62_cd-ttg_31082026-signed.signed.pdf (Công điện số 62/CĐ-TTg ngày 31/08/2026)", "Mục 2, trang 1-2"]
+          },
+          {
+            "q": "Trách nhiệm báo cáo kết quả xử lý của UBND tỉnh Điện Biên được quy định như thế nào trong Công điện 62/CĐ-TTg?",
+            "a": "Chủ tịch UBND tỉnh Điện Biên phải báo cáo Thủ tướng Chính phủ kết quả rà soát, xử lý trước ngày 05 tháng 9 năm 2026.",
+            "sources": ["62_cd-ttg_31082026-signed.signed.pdf (Công điện số 62/CĐ-TTg ngày 31/08/2026)", "Mục 1, trang 1"]
+          },
+          {
+            "q": "Nghị quyết số 37/2026/QH16 của Quốc hội quy định về vấn đề gì?",
+            "a": "Quy định về cơ chế, chính sách đặc thù để xử lý các hành vi vi phạm pháp luật về hình sự và xử lý kỷ luật liên quan đến kinh tế nhà nước, kinh tế tư nhân và ứng dụng khoa học, công nghệ, đổi mới sáng tạo, chuyển đổi số nhưng vì lợi ích chung.",
+            "sources": ["nq37_nqcochedacthuxlvppl.signed.pdf (Nghị quyết số 37/2026/QH16 ngày 03/09/2026)", "Chương I, Điều 1, trang 1"]
+          },
+          {
+            "q": "Nguyên tắc xử lý vi phạm theo Nghị quyết số 37/2026/QH16 là gì?",
+            "a": "Tuân thủ Hiến pháp; bảo đảm tính nhân văn, khoan hồng của Đảng và Nhà nước; khuyến khích, bảo vệ người năng động, sáng tạo vì lợi ích chung; không tham nhũng, không vụ lợi cá nhân.",
+            "sources": ["nq37_nqcochedacthuxlvppl.signed.pdf (Nghị quyết số 37/2026/QH16 ngày 03/09/2026)", "Chương I, Điều 3, Khoản 1 & Khoản 2, trang 1"]
+          },
+          {
+            "q": "Cơ quan tiến hành tố tụng KHÔNG truy cứu trách nhiệm hình sự khi có đủ các điều kiện nào?",
+            "a": "Khi đủ 5 điều kiện: 1. Không tham nhũng; 2. Vì lợi ích chung; 3. Các hoạt động đầu tư/sản xuất/khoa học công nghệ/CĐS đã hoàn thành mang lại hiệu quả; 4. Không có khiếu nại tố cáo hoặc đã giải quyết dứt điểm; 5. Không gây thất thoát tài sản hoặc đã khắc phục toàn bộ hậu quả.",
+            "sources": ["nq37_nqcochedacthuxlvppl.signed.pdf (Nghị quyết số 37/2026/QH16 ngày 03/09/2026)", "Chương II, Điều 5, Khoản 1-5, trang 3"]
+          },
+          {
+            "q": "Trường hợp nào người gây thiệt hại trong ứng dụng khoa học công nghệ, chuyển đổi số được LOẠI TRỪ trách nhiệm hình sự?",
+            "a": "Người gây thiệt hại do gặp rủi ro trong ứng dụng khoa học công nghệ, đổi mới sáng tạo, chuyển đổi số mặc dù đã tuân thủ đúng quy trình, quy định, áp dụng đầy đủ các biện pháp phòng ngừa thì được loại trừ trách nhiệm hình sự.",
+            "sources": ["nq37_nqcochedacthuxlvppl.signed.pdf (Nghị quyết số 37/2026/QH16 ngày 03/09/2026)", "Chương II, Điều 6, Khoản 1, trang 4"]
+          },
+          {
+            "q": "Người thực hiện chức trách đột phá, tháo gỡ nút thắt trong ứng dụng KHCN, CĐS chưa có quy định pháp luật điều chỉnh được loại trừ trách nhiệm hình sự khi đáp ứng điều kiện gì?",
+            "a": "Đáp ứng đủ các điều kiện: Không tham nhũng; Vì lợi ích chung; Hoạt động đã hoàn thành mang lại hiệu quả kinh tế - xã hội, bảo đảm quốc phòng, an ninh, phát triển KHCN, chuyển đổi số.",
+            "sources": ["nq37_nqcochedacthuxlvppl.signed.pdf (Nghị quyết số 37/2026/QH16 ngày 03/09/2026)", "Chương II, Điều 6, Khoản 2, Điểm a, b, c, trang 4"]
+          },
+          {
+            "q": "Cơ quan tiến hành tố tụng xem xét TẠM HOÃN truy cứu trách nhiệm hình sự trong trường hợp nào?",
+            "a": "Khi vì lợi ích chung, có gây thất thoát tài sản nhưng không tham nhũng và hoạt động đang thực hiện dở dang, có điều kiện, khả năng khắc phục hậu quả và có cam kết khắc phục.",
+            "sources": ["nq37_nqcochedacthuxlvppl.signed.pdf (Nghị quyết số 37/2026/QH16 ngày 03/09/2026)", "Chương II, Điều 7, Khoản 1, 2, 3, trang 4"]
+          },
+          {
+            "q": "Thời hạn tạm đình chỉ giải quyết tố giác, tin báo về tội phạm, điều tra, truy tố, xét xử tối đa là bao lâu?",
+            "a": "Thời hạn tạm đình chỉ giải quyết tố giác, tin báo về tội phạm, kiến nghị khởi tố, điều tra, truy tố, xét xử tối đa là 02 năm kể từ thời điểm ban hành quyết định.",
+            "sources": ["nq37_nqcochedacthuxlvppl.signed.pdf (Nghị quyết số 37/2026/QH16 ngày 03/09/2026)", "Chương II, Điều 9, Khoản 3, trang 5"]
+          },
+          {
+            "q": "Trường hợp người bị kết án phạt tù đáp ứng đủ điều kiện quy định tại Nghị quyết 37/2026/QH16 và đã khắc phục toàn bộ hậu quả thiệt hại thì Tòa án xử lý như thế nào?",
+            "a": "Tòa án ra quyết định MIỄN chấp hành hình phạt tù còn lại (hoặc miễn chấp hành thời hạn thử thách) và đương nhiên được xóa án tích.",
+            "sources": ["nq37_nqcochedacthuxlvppl.signed.pdf (Nghị quyết số 37/2026/QH16 ngày 03/09/2026)", "Chương II, Điều 10, Khoản 3 & Khoản 4, Điểm a, trang 6-7"]
+          },
+          {
+            "q": "Cán bộ, công chức, viên chức vi phạm kỷ luật nhưng đáp ứng đủ điều kiện tại Điều 5 hoặc Điều 6 của Nghị quyết 37/2026/QH16 thì được xử lý kỷ luật thế nào?",
+            "a": "Được xem xét MIỄN kỷ luật. Nếu thuộc trường hợp Điều 7 thì được xem xét CHƯA xử lý kỷ luật để khắc phục hậu quả (thời hạn chưa xử lý tối đa là 02 năm).",
+            "sources": ["nq37_nqcochedacthuxlvppl.signed.pdf (Nghị quyết số 37/2026/QH16 ngày 03/09/2026)", "Chương II, Điều 11, Khoản 1 & Khoản 2, trang 7"]
+          },
+          {
+            "q": "Nghị quyết số 37/2026/QH16 có hiệu lực thi hành từ ngày nào và thời hạn thực hiện trong bao lâu?",
+            "a": "Nghị quyết có hiệu lực thi hành từ ngày 01 tháng 9 năm 2026 và được thực hiện trong thời hạn 03 năm kể từ ngày có hiệu lực thi hành.",
+            "sources": ["nq37_nqcochedacthuxlvppl.signed.pdf (Nghị quyết số 37/2026/QH16 ngày 03/09/2026)", "Chương III, Điều 12, Khoản 1 & Khoản 2, trang 8"]
+          }
+        ];
+
+        // Dữ liệu bộ câu hỏi trắc nghiệm tự động nạp từ quiz_dataset.json
+        const quizRawData = [
+          {
+            "q": "Theo Nghị định số 192/2026/NĐ-CP, mức phụ cấp trực 24/24 giờ vào ngày làm việc đối với người lao động làm việc tại cơ sở y tế hạng đặc biệt, hạng I là bao nhiêu?",
+            "options": [
+              "A. 325.000 đồng/người/phiên",
+              "B. 255.000 đồng/người/phiên",
+              "C. 185.000 đồng/người/phiên",
+              "D. 70.000 đồng/người/phiên"
+            ],
+            "correct_answer": "A. 325.000 đồng/người/phiên",
+            "explanation": "Người lao động trực 24/24 giờ vào ngày làm việc tại cơ sở y tế hạng đặc biệt, hạng I được hưởng mức phụ cấp trực là 325.000 đồng/người/phiên.",
+            "source": "192-ndcp.signed.pdf",
+            "reference": "Chương II, Điều 3, Khoản 3, Điểm a, trang 5"
+          },
+          {
+            "q": "Theo Nghị định số 192/2026/NĐ-CP, nhân viên y tế thôn, tổ dân phố làm việc tại thôn có từ bao nhiêu hộ gia đình trở lên thì được áp dụng mức hỗ trợ hằng tháng bằng 0,7 lần mức lương cơ sở?",
+            "options": [
+              "A. Từ 200 hộ gia đình trở lên",
+              "B. Từ 350 hộ gia đình trở lên",
+              "C. Từ 500 hộ gia đình trở lên",
+              "D. Từ 100 hộ gia đình trở lên"
+            ],
+            "correct_answer": "B. Từ 350 hộ gia đình trở lên",
+            "explanation": "Mức hỗ trợ hằng tháng bằng 0,7 lần mức lương cơ sở áp dụng đối với nhân viên y tế thôn làm việc tại các thôn có từ 350 hộ gia đình trở lên hoặc thuộc xã vùng khó khăn.",
+            "source": "192-ndcp.signed.pdf",
+            "reference": "Chương III, Điều 7, Khoản 2, Điểm a, trang 11"
+          },
+          {
+            "q": "Theo Nghị định số 307/2026/NĐ-CP, cơ quan nào có thẩm quyền phê duyệt danh sách công nhận, đưa ra khỏi danh sách người có uy tín trong vùng đồng bào dân tộc thiểu số?",
+            "options": [
+              "A. Chủ tịch Ủy ban nhân dân cấp xã",
+              "B. Chủ tịch Ủy ban nhân dân cấp huyện",
+              "C. Trưởng ban Dân tộc cấp tỉnh",
+              "D. Bí thư Chi bộ thôn"
+            ],
+            "correct_answer": "A. Chủ tịch Ủy ban nhân dân cấp xã",
+            "explanation": "Việc công nhận, đưa ra khỏi danh sách và thay thế, bổ sung người có uy tín trong vùng đồng bào dân tộc thiểu số thuộc thẩm quyền của Chủ tịch Ủy ban nhân dân cấp xã.",
+            "source": "307_2026_nd-cp_04082026-signed.signed.pdf",
+            "reference": "Chương III, Điều 7, Khoản 1, trang 4"
+          },
+          {
+            "q": "Theo Nghị định số 307/2026/NĐ-CP, tại cuộc họp thôn để bình chọn người có uy tín, người được lựa chọn phải đạt tỷ lệ đồng ý tối thiểu là bao nhiêu?",
+            "options": [
+              "A. Trên 30% tổng số hộ gia đình trong thôn",
+              "B. Đạt từ 50% tổng số hộ gia đình trong thôn trở lên",
+              "C. Đạt trên 50% tổng số hộ gia đình trong thôn",
+              "D. Đạt 100% đại diện hộ gia đình tham dự"
+            ],
+            "correct_answer": "C. Đạt trên 50% tổng số hộ gia đình trong thôn",
+            "explanation": "Người được lựa chọn công nhận là người có uy tín phải đạt trên 50% tổng số hộ gia đình trong thôn thống nhất thông qua bằng hình thức giơ tay hoặc bỏ phiếu kín.",
+            "source": "307_2026_nd-cp_04082026-signed.signed.pdf",
+            "reference": "Chương III, Điều 8, Khoản 1, Điểm a, trang 4"
+          },
+          {
+            "q": "Theo Nghị định số 307/2026/NĐ-CP, mức chi thăm hỏi, hỗ trợ người có uy tín bị ốm đau khi điều trị bệnh tại cấp khám chữa bệnh chuyên sâu tối đa là bao nhiêu?",
+            "options": [
+              "A. 1.000.000 đồng/người/lần",
+              "B. 3.000.000 đồng/người/lần",
+              "C. 5.000.000 đồng/người/lần",
+              "D. 10.000.000 đồng/người/lần"
+            ],
+            "correct_answer": "C. 5.000.000 đồng/người/lần",
+            "explanation": "Người có uy tín bị ốm đau được thăm hỏi, hỗ trợ không quá 01 lần/năm với mức chi thực tế tối đa 5.000.000 đồng/người khi điều trị bệnh tại cấp khám chữa bệnh chuyên sâu.",
+            "source": "307_2026_nd-cp_04082026-signed.signed.pdf",
+            "reference": "Chương IV, Điều 10, Khoản 1, Điểm b, trang 6"
+          },
+          {
+            "q": "Theo Nghị định số 308/2026/NĐ-CP, doanh nghiệp nhà nước nắm giữ 100% vốn điều lệ được trích lập Quỹ đào tạo nhân lực hằng năm tối đa bao nhiêu % lợi nhuận sau thuế?",
+            "options": [
+              "A. Tối đa không quá 0,1% lợi nhuận sau thuế",
+              "B. Tối đa không quá 1% lợi nhuận sau thuế",
+              "C. Tối đa không quá 5% lợi nhuận sau thuế",
+              "D. Tối đa không quá 10% lợi nhuận sau thuế"
+            ],
+            "correct_answer": "A. Tối đa không quá 0,1% lợi nhuận sau thuế",
+            "explanation": "Đối với doanh nghiệp nhà nước nắm giữ 100% vốn điều lệ, mức trích lập Quỹ đào tạo nhân lực hằng năm bảo đảm tổng giá trị của Phần Quỹ có nguồn từ lợi nhuận sau thuế tối đa không quá 0,1% lợi nhuận sau thuế.",
+            "source": "308_2026_nd-cp_05082026-signed.signed.pdf",
+            "reference": "Chương III, Điều 7, Khoản 3, Điểm a, trang 6"
+          },
+          {
+            "q": "Theo Nghị định số 308/2026/NĐ-CP, doanh nghiệp có đóng góp tiêu biểu hằng năm phải sử dụng tối thiểu bao nhiêu % quỹ đào tạo nhân lực cho hoạt động giáo dục, đào tạo để được xét tôn vinh, khen thưởng?",
+            "options": [
+              "A. Tối thiểu 50% quỹ hằng năm",
+              "B. Tối thiểu 60% quỹ hằng năm",
+              "C. Tối thiểu 70% quỹ hằng năm",
+              "D. Tối thiểu 80% quỹ hằng năm"
+            ],
+            "correct_answer": "C. Tối thiểu 70% quỹ hằng năm",
+            "explanation": "Doanh nghiệp hằng năm có trích lập Quỹ đào tạo nhân lực và sử dụng tối thiểu 70% quỹ hằng năm cho hoạt động giáo dục, đào tạo là một trong những tiêu chí được Nhà nước xem xét tôn vinh, khen thưởng.",
+            "source": "308_2026_nd-cp_05082026-signed.signed.pdf",
+            "reference": "Chương II, Điều 5, Khoản 1, trang 4"
+          },
+          {
+            "q": "Theo Nghị định số 321/2026/NĐ-CP, mức chuẩn trợ cấp ưu đãi người có công với cách mạng được quy định là bao nhiêu?",
+            "options": [
+              "A. 2.055.000 đồng",
+              "B. 2.789.000 đồng",
+              "C. 3.012.000 đồng",
+              "D. 3.500.000 đồng"
+            ],
+            "correct_answer": "C. 3.012.000 đồng",
+            "explanation": "Mức chuẩn trợ cấp ưu đãi người có công với cách mạng là 3.012.000 đồng làm căn cứ để tính mức hưởng trợ cấp, phụ cấp và các chế độ ưu đãi.",
+            "source": "321_2026_nd-cp_15082026-signed.signed.pdf",
+            "reference": "Chương II, Điều 3, Khoản 1, trang 1"
+          },
+          {
+            "q": "Theo Nghị định số 321/2026/NĐ-CP, mức chi điều dưỡng phục hồi sức khỏe tập trung cho người có công với cách mạng được tính bằng bao nhiêu lần mức chuẩn?",
+            "options": [
+              "A. 0,9 lần mức chuẩn/người/lần",
+              "B. 1,2 lần mức chuẩn/người/lần",
+              "C. 1,8 lần mức chuẩn/người/lần",
+              "D. 2,0 lần mức chuẩn/người/lần"
+            ],
+            "correct_answer": "C. 1,8 lần mức chuẩn/người/lần",
+            "explanation": "Chế độ điều dưỡng phục hồi sức khỏe tập trung cho người có công có mức chi bằng 1,8 lần mức chuẩn/người/lần (trong khi điều dưỡng tại nhà bằng 0,9 lần mức chuẩn).",
+            "source": "321_2026_nd-cp_15082026-signed.signed.pdf",
+            "reference": "Chương III, Điều 6, Khoản 2, trang 2"
+          },
+          {
+            "q": "Theo Nghị định số 338/2026/NĐ-CP, sĩ quan nghỉ hưu trước hạn tuổi cao nhất do thay đổi tổ chức hoặc biên chế theo quyết định của cấp có thẩm quyền thì được hưởng trợ cấp một lần bằng bao nhiêu tiền lương cho mỗi năm nghỉ hưu trước hạn?",
+            "options": [
+              "A. 03 tháng tiền lương",
+              "B. 05 tháng tiền lương",
+              "C. 06 tháng tiền lương",
+              "D. 12 tháng tiền lương"
+            ],
+            "correct_answer": "B. 05 tháng tiền lương",
+            "explanation": "Sĩ quan nghỉ hưu trước hạn tuổi cao nhất do thay đổi tổ chức hoặc biên chế được trợ cấp một lần bằng 05 tháng tiền lương cho mỗi năm nghỉ hưu trước hạn tuổi.",
+            "source": "338_2026_nd-cp_26082026-signed.signed.pdf",
+            "reference": "Chương I, Điều 1 (Sửa đổi Khoản 2 Điều 2), Khoản 2a, trang 2"
+          },
+          {
+            "q": "Theo Nghị định số 381/2026/NĐ-CP, mức phụ cấp công vụ đối với cán bộ, công chức cấp xã không hưởng tiền lương, thu nhập tăng thêm theo Nghị quyết của HĐND cấp tỉnh được tính bằng bao nhiêu % mức lương hiện hưởng cộng phụ cấp?",
+            "options": [
+              "A. 15%",
+              "B. 25%",
+              "C. 35%",
+              "D. 55%"
+            ],
+            "correct_answer": "D. 55%",
+            "explanation": "Mức phụ cấp công vụ bằng 55% mức lương hiện hưởng cộng phụ cấp chức vụ lãnh đạo và phụ cấp thâm niên vượt khung (nếu có) áp dụng cho cán bộ, công chức cấp xã không hưởng tiền lương/thu nhập tăng thêm theo Nghị quyết HĐND.",
+            "source": "381_202.pdf",
+            "reference": "Điều 3, Khoản 1, trang 1"
+          },
+          {
+            "q": "Theo Nghị định số 381/2026/NĐ-CP, thời gian nghỉ việc nào sau đây KHÔNG được tính hưởng phụ cấp công vụ?",
+            "options": [
+              "A. Nghỉ hằng tuần theo quy định",
+              "B. Nghỉ phép hằng năm",
+              "C. Thời gian nghỉ việc không hưởng lương liên tục từ 01 tháng trở lên",
+              "D. Thời gian đi học tập ngắn ngày trong nước"
+            ],
+            "correct_answer": "C. Thời gian nghỉ việc không hưởng lương liên tục từ 01 tháng trở lên",
+            "explanation": "Thời gian không được tính hưởng phụ cấp công vụ bao gồm: đi công tác/học tập ở nước ngoài hưởng 40% lương; nghỉ việc không hưởng lương liên tục từ 01 tháng trở lên; nghỉ hưởng trợ cấp BHXH; bị tạm đình chỉ công tác hoặc bị tạm giữ, tạm giam.",
+            "source": "381_202.pdf",
+            "reference": "Điều 4, Khoản 2, Điểm b, trang 2"
+          },
+          {
+            "q": "Theo Văn bản hợp nhất số 55/2026/VBHN-NĐ-BQP, thời gian trực tiếp chiến đấu, phục vụ chiến đấu của quân nhân chuyên nghiệp được quy đổi theo hệ số nào để tính trợ cấp một lần?",
+            "options": [
+              "A. 01 năm bằng 01 năm 02 tháng",
+              "B. 01 năm bằng 01 năm 04 tháng",
+              "C. 01 năm bằng 01 năm 06 tháng",
+              "D. 01 năm bằng 02 năm 00 tháng"
+            ],
+            "correct_answer": "C. 01 năm bằng 01 năm 06 tháng",
+            "explanation": "Thời gian trực tiếp chiến đấu, phục vụ chiến đấu được quy đổi theo hệ số 01 năm bằng 01 năm 06 tháng để tính hưởng chế độ trợ cấp một lần.",
+            "source": "55-vbhn-bqp.signed.pdf",
+            "reference": "Điều 7, Khoản 1, Điểm a, trang 6"
+          },
+          {
+            "q": "Theo Văn bản hợp nhất số 56/2026/VBHN-NĐ-BQP, quân nhân chuyên nghiệp chuyển ngành sang làm việc tại cơ quan nhà nước được bảo lưu mức lương và phụ cấp thâm niên trong thời gian bao lâu kể từ ngày quyết định có hiệu lực?",
+            "options": [
+              "A. 06 tháng",
+              "B. 12 tháng",
+              "C. 18 tháng",
+              "D. 24 tháng"
+            ],
+            "correct_answer": "C. 18 tháng",
+            "explanation": "Trường hợp lương mới thấp hơn lương cũ, quân nhân chuyên nghiệp được bảo lưu mức lương và phụ cấp thâm niên tại thời điểm chuyển ngành trong thời gian 18 tháng kể từ ngày quyết định chuyển ngành có hiệu lực.",
+            "source": "56-vbhn-bqp.signed.pdf",
+            "reference": "Điều 2, Khoản 1, Điểm c, trang 3"
+          },
+          {
+            "q": "Công điện số 62/CĐ-TTg ngày 31/8/2026 của Thủ tướng Chính phủ chỉ đạo UBND tỉnh Điện Biên xử lý vấn đề gì?",
+            "options": [
+              "A. Rà soát, xác minh thông tin báo chí phản ánh về trường học vận động hỗ trợ gạo và điều kiện học tập cho học sinh",
+              "B. Kiểm tra công tác phòng chống thiên tai bão lũ tại các vùng núi đặc biệt khó khăn",
+              "C. Báo cáo tình hình trích lập Quỹ đào tạo nhân lực tại các doanh nghiệp trên địa bàn",
+              "D. Phê duyệt danh sách người có uy tín trong vùng đồng bào dân tộc thiểu số năm 2026"
+            ],
+            "correct_answer": "A. Rà soát, xác minh thông tin báo chí phản ánh về trường học vận động hỗ trợ gạo và điều kiện học tập cho học sinh",
+            "explanation": "Công điện 62/CĐ-TTg chỉ đạo Chủ tịch UBND tỉnh Điện Biên khẩn trương rà soát, xác minh thông tin báo chí phản ánh trường học kêu gọi hỗ trợ gạo và điều kiện thiết yếu cho học sinh, bảo đảm các em có đủ điều kiện đến trường.",
+            "source": "62_cd-ttg_31082026-signed.signed.pdf",
+            "reference": "Mục 1, trang 1"
+          },
+          {
+            "q": "Theo Nghị quyết số 37/2026/QH16, trường hợp nào sau đây được LOẠI TRỪ trách nhiệm hình sự trong ứng dụng khoa học, công nghệ, đổi mới sáng tạo, chuyển đổi số?",
+            "options": [
+              "A. Người gây thiệt hại do gặp rủi ro mặc dù đã tuân thủ đúng quy trình, quy định, áp dụng đầy đủ biện pháp phòng ngừa",
+              "B. Người cố ý làm trái quy định nhưng mang lại lợi ích kinh tế cho địa phương",
+              "C. Người có hành vi tham nhũng nhưng đã khắc phục toàn bộ hậu quả thiệt hại",
+              "D. Người vi phạm pháp luật quy định tại Bộ luật Hình sự nhưng không nhận hối lộ"
+            ],
+            "correct_answer": "A. Người gây thiệt hại do gặp rủi ro mặc dù đã tuân thủ đúng quy trình, quy định, áp dụng đầy đủ biện pháp phòng ngừa",
+            "explanation": "Nghị quyết 37/2026/QH16 quy định loại trừ trách nhiệm hình sự đối với người gây thiệt hại do gặp rủi ro trong ứng dụng KHCN, đổi mới sáng tạo, chuyển đổi số mặc dù đã tuân thủ đúng quy trình, quy định và áp dụng đầy đủ các biện pháp phòng ngừa.",
+            "source": "nq37_nqcochedacthuxlvppl.signed.pdf",
+            "reference": "Chương II, Điều 6, Khoản 1, trang 4"
+          },
+          {
+            "q": "Theo Nghị quyết số 37/2026/QH16, thời hạn tạm đình chỉ giải quyết tố giác, tin báo về tội phạm, kiến nghị khởi tố, điều tra tối đa là bao lâu?",
+            "options": [
+              "A. Không quá 06 tháng",
+              "B. Tối đa là 01 năm",
+              "C. Tối đa là 02 năm kể từ thời điểm ban hành quyết định",
+              "D. Tối đa là 03 năm kể từ ngày Nghị quyết có hiệu lực"
+            ],
+            "correct_answer": "C. Tối đa là 02 năm kể từ thời điểm ban hành quyết định",
+            "explanation": "Thời hạn tạm đình chỉ giải quyết tố giác, tin báo về tội phạm, kiến nghị khởi tố, điều tra, truy tố, xét xử đối với các trường hợp đủ điều kiện quy định tại Nghị quyết tối đa là 02 năm kể từ thời điểm ban hành quyết định.",
+            "source": "nq37_nqcochedacthuxlvppl.signed.pdf",
+            "reference": "Chương II, Điều 9, Khoản 3, trang 5"
+          }
+        ];
+
+        let allQuizzes = [];
+        const quizTopics = [
+            "Đề 1: Phụ cấp y tế & Chính sách người có uy tín", 
+            "Đề 2: Giáo dục nghề nghiệp & Trợ cấp ưu đãi người có công", 
+            "Đề 3: Chế độ Quân đội & Cán bộ, công chức cấp xã", 
+            "Đề 4: Tổng hợp Văn bản hợp nhất Bộ Quốc phòng & QLNN", 
+            "Đề 5: Cơ chế đặc thù & Công điện chỉ đạo"
+        ];
+
+        let currentQuestionIndex = 0;
+        let userAnswers = [];
+        let currentQuizQuestions = [];
+        let currentQuizTopicIndex = 0;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('total-qa-count').innerHTML = `Hệ thống hỗ trợ tra cứu chuẩn xác với <b>${qaData.length} câu hỏi & đáp án</b> về Chính sách xã hội.`;
+            document.querySelector('#results-container p').innerHTML = `Kết quả tra cứu sẽ hiển thị tại đây. Cơ sở dữ liệu chứa <b>${qaData.length} câu hỏi</b> chi tiết.`;
+            generateQuizzes();
+        });
+        
+        function generateQuizzes() {
+            allQuizzes = quizTopics.map(() => shuffleArray([...quizRawData]).slice(0, 10));
+        }
+
+        function showTab(tabId) {
+            ['search', 'quick-learn', 'quiz'].forEach(id => document.getElementById(`tab-${id}`).classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            if (tabId === 'search') document.getElementById('search-box').focus();
+        }
+        
+        function handleKeyPress(event) { if (event.key === 'Enter') handleUserQuery(); }
+
+        function handleUserQuery() {
+            const searchBox = document.getElementById('search-box');
+            const query = searchBox.value.toLowerCase().trim();
+            const resultsContainer = document.getElementById('results-container');
+            
+            if (query.length < 2) {
+                resultsContainer.innerHTML = '<p class="text-red-500 font-semibold">Vui lòng nhập từ khóa tìm kiếm chi tiết hơn (tối thiểu 2 ký tự).</p>';
+                return;
+            }
+            
+            const searchResults = qaData.filter(item => item.q.toLowerCase().includes(query) || item.a.toLowerCase().includes(query));
+            
+            if (searchResults.length > 0) {
+                resultsContainer.innerHTML = `<p class="text-sky-800 font-semibold italic mb-3">Tìm thấy ${searchResults.length} kết quả phù hợp:</p>`;
+                searchResults.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'result-item';
+                    el.innerHTML = `
+                        <p><i class="fas fa-question-circle text-sky-600 mr-2"></i>${item.q}</p>
+                        <p>${item.a}</p>
+                        <p class="text-xs text-slate-500 font-medium">📌 Nguồn trích dẫn: ${item.sources.join(', ')}</p>`;
+                    resultsContainer.appendChild(el);
+                });
+            } else {
+                resultsContainer.innerHTML = `<p class="text-slate-500 font-semibold italic">❌ Không tìm thấy thông tin phù hợp với từ khóa "${query}".</p>`;
+            }
+        }
+        
+        function openQuickLearnModal() {
+            showTab('quick-learn');
+            const modal = document.getElementById('main-modal');
+            modal.querySelector('#modal-title').innerHTML = `<i class="fas fa-book-reader mr-2"></i>HỌC NHANH: ${qaData.length} CÂU HỎI & ĐÁP ÁN CHÍNH SÁCH XÃ HỘI`;
+            const modalBody = modal.querySelector('#modal-body');
+            modalBody.innerHTML = '';
+            modal.querySelector('#modal-footer').innerHTML = ''; 
+            
+            qaData.forEach((item, index) => {
+                const qaItem = document.createElement('div');
+                qaItem.className = 'qa-item';
+                qaItem.onclick = () => {
+                    const ans = qaItem.querySelector('.answer');
+                    ans.style.display = ans.style.display === 'block' ? 'none' : 'block';
+                };
+                qaItem.innerHTML = `
+                    <div class="question"><span class="text-sky-600 mr-2">Câu ${index + 1}:</span> ${item.q}</div>
+                    <div class="answer">
+                        <span class="font-bold text-sky-700">ĐÁP ÁN:</span> ${item.a}
+                        <p class="text-xs text-slate-500 mt-2 font-medium">📌 Nguồn: ${item.sources.join(', ')}</p>
+                    </div>`;
+                modalBody.appendChild(qaItem);
+            });
+            modal.style.display = 'block';
+        }
+
+        function openQuizSelectionModal() {
+            showTab('quiz');
+            const modal = document.getElementById('main-modal');
+            modal.querySelector('#modal-title').innerHTML = '<i class="fas fa-tasks mr-2"></i>THI TRẮC NGHIỆM: CHỌN ĐỀ THI';
+            const modalBody = modal.querySelector('#modal-body');
+            let html = `<p class="mb-4 font-semibold text-slate-700">Vui lòng chọn 1 trong các bộ đề ôn luyện dưới đây (mỗi đề gồm 10 câu):</p><div class="flex flex-col space-y-3">`;
+            quizTopics.forEach((topic, i) => { 
+                html += `<button class="quiz-selection-btn flex justify-between items-center" onclick="startQuiz(${i})">
+                            <span><i class="fas fa-file-alt mr-2"></i>${topic}</span>
+                            <i class="fas fa-chevron-right text-sm"></i>
+                         </button>`; 
+            });
+            html += `</div>`;
+            modalBody.innerHTML = html;
+            modal.querySelector('#modal-footer').innerHTML = '';
+            modal.style.display = 'block';
+        }
+
+        function startQuiz(quizIndex) {
+            currentQuestionIndex = 0;
+            currentQuizTopicIndex = quizIndex;
+            currentQuizQuestions = allQuizzes[quizIndex];
+            userAnswers = new Array(currentQuizQuestions.length).fill(null);
+            renderQuizQuestion();
+        }
+
+        function renderQuizQuestion() {
+            const q = currentQuizQuestions[currentQuestionIndex];
+            const modal = document.getElementById('main-modal');
+            modal.querySelector('#modal-title').innerHTML = `<i class="fas fa-edit mr-2"></i>${quizTopics[currentQuizTopicIndex]} <span class="text-sm font-normal text-sky-600 block sm:inline sm:ml-2">(Câu ${currentQuestionIndex + 1}/${currentQuizQuestions.length})</span>`;
+            const modalBody = modal.querySelector('#modal-body');
+
+            let optionsHtml = q.options.map(opt => `<div class="quiz-option" data-answer="${opt}" onclick="selectQuizOption(this)">${opt}</div>`).join('');
+
+            modalBody.innerHTML = `
+                <div class="mb-5">
+                    <p class="text-lg font-bold text-sky-900 leading-snug">${q.q}</p>
+                </div>
+                <div id="quiz-options-container" class="space-y-2">${optionsHtml}</div>
+                <div id="quiz-feedback" class="explanation"></div>`;
+            
+            modal.querySelector('#modal-footer').innerHTML = `
+                <button id="next-quiz-btn" class="footer-button" onclick="navigateQuiz()">
+                    ${currentQuestionIndex === currentQuizQuestions.length - 1 ? 'Nộp bài <i class="fas fa-check-circle ml-1"></i>' : 'Câu tiếp theo <i class="fas fa-arrow-right ml-1"></i>'}
+                </button>`;
+        }
+
+        function selectQuizOption(selectedEl) {
+            const optionsContainer = document.getElementById('quiz-options-container');
+            if (optionsContainer.dataset.answered) return;
+            optionsContainer.dataset.answered = 'true';
+
+            const questionData = currentQuizQuestions[currentQuestionIndex];
+            const userAnswer = selectedEl.getAttribute('data-answer');
+            const isCorrect = userAnswer === questionData.correct_answer;
+            
+            userAnswers[currentQuestionIndex] = { userAnswer, isCorrect };
+
+            selectedEl.classList.add(isCorrect ? 'correct' : 'incorrect');
+
+            if (!isCorrect) {
+                const correctOption = optionsContainer.querySelector(`[data-answer="${questionData.correct_answer}"]`);
+                if(correctOption) correctOption.classList.add('show-correct');
+            }
+            
+            const feedbackDiv = document.getElementById('quiz-feedback');
+            feedbackDiv.style.background = isCorrect ? '#f0fdf4' : '#fef2f2';
+            feedbackDiv.style.borderColor = isCorrect ? 'var(--green-correct)' : 'var(--red-incorrect)';
+            feedbackDiv.style.color = isCorrect ? '#166534' : '#991b1b';
+            feedbackDiv.innerHTML = `<b>${isCorrect ? '✓ Chính xác!' : '✗ Chưa chính xác!'}</b><p class="mt-1"><b>Giải thích / Nguồn:</b> ${questionData.explanation} (Nguồn: ${questionData.source}, ${questionData.reference})</p>`;
+            feedbackDiv.style.display = 'block';
+        }
+
+        function navigateQuiz() {
+            if (userAnswers[currentQuestionIndex] === null) {
+                alert('Vui lòng chọn một đáp án trước khi tiếp tục!');
+                return;
+            }
+            if (currentQuestionIndex < currentQuizQuestions.length - 1) {
+                currentQuestionIndex++;
+                renderQuizQuestion();
+            } else {
+                submitQuiz();
+            }
+        }
+
+        function submitQuiz() {
+            const total = currentQuizQuestions.length;
+            const correctCount = userAnswers.filter(a => a && a.isCorrect).length;
+            const score = (correctCount / total) * 10;
+            
+            const modal = document.getElementById('main-modal');
+            modal.querySelector('#modal-title').innerHTML = `<i class="fas fa-award mr-2 text-yellow-500"></i>KẾT QUẢ BÀI THI TRẮC NGHIỆM`;
+            modal.querySelector('#modal-body').innerHTML = `
+                <div class="text-center py-6 px-4">
+                    <p class="text-xl font-semibold text-slate-700">Bạn đã trả lời đúng</p>
+                    <p class="text-6xl font-extrabold text-sky-600 my-3">${correctCount} / ${total}</p>
+                    <p class="text-2xl font-bold text-slate-800">Điểm số: <span class="text-sky-700">${score.toFixed(1)}</span> / 10</p>
+                    <p class="text-sm text-slate-500 mt-3">${score >= 8 ? '🎉 Xuất sắc! Bạn nắm rất vững kiến thức Chính sách xã hội.' : score >= 5 ? '👍 Khá tốt! Hãy tiếp tục phát huy.' : '📖 Bạn nên ôn tập lại kiến thức nhé!'}</p>
+                </div>`;
+            modal.querySelector('#modal-footer').innerHTML = `
+                <div class="w-full flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    <button class="footer-button bg-slate-600 hover:bg-slate-700 flex-1" onclick="showReview()"><i class="fas fa-eye mr-1"></i> Xem lại bài làm</button>
+                    <button class="footer-button bg-amber-600 hover:bg-amber-700 flex-1" onclick="startQuiz(currentQuizTopicIndex)"><i class="fas fa-redo mr-1"></i> Thi lại đề này</button>
+                    <button class="footer-button flex-1" onclick="openQuizSelectionModal()"><i class="fas fa-list-ul mr-1"></i> Chọn đề khác</button>
+                </div>`;
+        }
+
+        function showReview() {
+            const modal = document.getElementById('main-modal');
+            modal.querySelector('#modal-title').innerHTML = `<i class="fas fa-search-plus mr-2"></i>CHI TIẾT BÀI LÀM`;
+            const modalBody = modal.querySelector('#modal-body');
+            let reviewHtml = '';
+
+            currentQuizQuestions.forEach((q, index) => {
+                const userAnswer = userAnswers[index] || { userAnswer: "Chưa trả lời", isCorrect: false };
+                const statusColor = userAnswer.isCorrect ? 'var(--green-correct)' : 'var(--red-incorrect)';
+                reviewHtml += `
+                    <div class="p-4 border rounded-xl mb-3 bg-white shadow-sm" style="border-left: 5px solid ${statusColor};">
+                        <p class="font-bold text-sky-900 mb-2">Câu ${index + 1}: ${q.q}</p>
+                        <p class="text-sm">- Lựa chọn của bạn: <span class="font-semibold" style="color: ${statusColor};">${userAnswer.userAnswer}</span> ${userAnswer.isCorrect ? '✔️' : '❌'}</p>
+                        ${!userAnswer.isCorrect ? `<p class="text-sm mt-1">- Đáp án đúng: <span class="font-semibold text-green-700">${q.correct_answer}</span></p>` : ''}
+                        <div class="mt-2 text-xs text-slate-600 bg-slate-50 p-2 rounded border border-slate-200"><p><b>Ghi chú:</b> ${q.explanation} (Nguồn: ${q.source})</p></div>
+                    </div>`;
+            });
+            modalBody.innerHTML = reviewHtml;
+            modal.querySelector('#modal-footer').innerHTML = `<button class="footer-button" onclick="submitQuiz()"><i class="fas fa-undo mr-1"></i> Quay lại điểm số</button>`;
+        }
+        
+        // --- SCRIPT HIỆU ỨNG TUYẾT RƠI ---
+        (function() {
+            const canvas = document.getElementById('snowflake-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let width = canvas.width = window.innerWidth;
+            let height = canvas.height = window.innerHeight;
+
+            window.addEventListener('resize', () => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            });
+
+            const flakes = Array.from({ length: 60 }, () => ({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                r: Math.random() * 3.5 + 1.2,
+                d: Math.random() * 1 + 0.5,
+                a: Math.random() * 360,
+                opacity: Math.random() * 0.7 + 0.3
+            }));
+
+            function draw() {
+                ctx.clearRect(0, 0, width, height);
+                flakes.forEach(f => {
+                    ctx.beginPath();
+                    ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2, false);
+                    ctx.fillStyle = `rgba(255, 255, 255, ${f.opacity})`;
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
+                    ctx.fill();
+
+                    f.y += f.d;
+                    f.a += 0.02;
+                    f.x += Math.sin(f.a) * 0.8;
+
+                    if (f.y > height) {
+                        f.y = -10;
+                        f.x = Math.random() * width;
+                    }
+                });
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
+
+        // --- HÀM HỖ TRỢ & ĐÓNG MODAL---
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        function closeModal() {
+            document.getElementById('main-modal').style.display = 'none';
+            showTab('search'); 
+        }
+    </script>
+</body>
+</html>
